@@ -14,7 +14,7 @@
 we did this in GAS course (at least Stephen does, and define it in "project.h" )
 DECLARE_LOG_CATEGORY_EXTERN(CustomLogName[/LogTemp/...] , [Log(white)/Warning(yellow)/Error(red)] , All  ) 
 
-DEFINE_LOG_CATEGORY(CustomLogName)
+DEFINE_LOG_CATEGORY(CustomLogName).
  */
 DEFINE_LOG_CATEGORY(GameServerLog);
 
