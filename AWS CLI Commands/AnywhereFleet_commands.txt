@@ -1,0 +1,113 @@
+**************Anywhere fleet****************
+0. 
+set AWS_PROFILE=rango-profile
+aws sso login --profile rango-profile  (no need profile if you did the "set ...")
+
+1. register your device as a compute resource
+= WARNING, you only need to run this ONCE
+; if you run it many times, the active instance didn't go back to zero after you close the dedicated server LOL
+
+***COPY***
+aws gamelift register-compute --fleet-id fleet-c555d413-fefb-4f3b-9f8c-c5f32b24de5a --compute-name DesktopPC --ip-address 192.168.1.6 --location custom-home-desktop
+**********
+
+C:\Users\hauha>aws gamelift register-compute --fleet-id fleet-c555d413-fefb-4f3b-9f8c-c5f32b24de5a --compute-name DesktopPC --ip-address 192.168.1.6 --location custom-home-desktop
+{
+    "Compute": {
+        "FleetId": "fleet-c555d413-fefb-4f3b-9f8c-c5f32b24de5a",
+        "FleetArn": "arn:aws:gamelift:us-east-2:761428468536:fleet/fleet-c555d413-fefb-4f3b-9f8c-c5f32b24de5a",
+        "ComputeName": "DesktopPC",
+        "ComputeArn": "arn:aws:gamelift:us-east-2:761428468536:compute/DesktopPC",
+        "IpAddress": "192.168.1.6",
+        "ComputeStatus": "Active",
+        "Location": "custom-home-desktop",
+        "CreationTime": "2025-08-06T13:19:11.038000+07:00",
+        "GameLiftServiceSdkEndpoint": "wss://us-east-2.api.amazongamelift.com",
+        "GameLiftAgentEndpoint": "wss://us-east-2.process-manager-api.amazongamelift.com"
+    }
+}
+
+@@fix: try this:
+aws gamelift deregister-compute ^
+ --fleet-id fleet-c555d413-fefb-4f3b-9f8c-c5f32b24de5a ^
+ --compute-name DesktopPC
+= well i didn't fix lol
+
+2. GET Auth Token for your compute/PC:
+aws gamelift get-compute-auth-token --fleet-id fleet-c555d413-fefb-4f3b-9f8c-c5f32b24de5a --compute-name DesktopPC
+
+3. run the game (change AuthToken):
+"C:\Users\hauha\OneDrive\Desktop\FPSTemplate\BUILD\Build_1\WindowsServer\FPSTemplate\Binaries\Win64\FPSTemplateServer.exe" -log -authtoken=bffbb2bc-2bc4-4968-97ad-fb07583db8cc -fleetid=fleet-c555d413-fefb-4f3b-9f8c-c5f32b24de5a -hostid=DesktopPC -websocketurl=wss://us-east-2.api.amazongamelift.com -port=7777
+
+4. Create game session:
+aws gamelift create-game-session --fleet-id fleet-c555d413-fefb-4f3b-9f8c-c5f32b24de5a  --maximum-player-session-count 4 --name DebugGameSession --location custom-home-desktop --region us-east-2
+
+{
+    "GameSession": {
+        "GameSessionId": "arn:aws:gamelift:us-east-2::gamesession/fleet-c555d413-fefb-4f3b-9f8c-c5f32b24de5a/custom-home-desktop/gsess-3108411b-6d03-4f58-9dcf-c8b7d6b92a2e",
+        "Name": "DebugGameSession",
+        "FleetId": "fleet-c555d413-fefb-4f3b-9f8c-c5f32b24de5a",        "FleetArn": "arn:aws:gamelift:us-east-2:761428468536:fleet/fleet-c555d413-fefb-4f3b-9f8c-c5f32b24de5a",
+        "CreationTime": "2025-08-07T15:42:45.614000+07:00",
+        "CurrentPlayerSessionCount": 0,
+        "MaximumPlayerSessionCount": 4,
+        "Status": "ACTIVATING",
+        "GameProperties": [],
+        "IpAddress": "192.168.1.6",
+        "Port": 7777,
+        "PlayerSessionCreationPolicy": "ACCEPT_ALL",
+        "Location": "custom-home-desktop"
+    }
+}
+
+4X. filter: only for fun
+aws gamelift describe-game-sessions --fleet-id fleet-c555d413-fefb-4f3b-9f8c-c5f32b24de5a --status-filter ACTIVE
+
+5. Create Player Session:
+aws gamelift create-player-session --game-session-id arn:aws:gamelift:us-east-2::gamesession/fleet-c555d413-fefb-4f3b-9f8c-c5f32b24de5a/custom-home-desktop/gsess-e3af88dc-ca9a-497f-9edf-3a2a10b79104 --player-id Player1
+
+6. upload-build
+=need only sso login and then upload (no need to run any thing)
+
+aws gamelift upload-build --name FPSTemplateServerBuild --build-version 1.0.0 --build-root "C:\Users\hauha\OneDrive\Desktop\FPSTemplate\BUILD\Build_1\WindowsServer" --operating-system WINDOWS_2016 --server-sdk-version 5.3.0 --region us-east-2
+
+-->the packed folder name is WindowsServer now make sense, as there is Window Server 2026 to run dedicated server (better performance than windows)
+
+**********EC2Fleet********************
+launch path && launch params for EC2
+ FPSTemplate\Binaries\Win64\FPSTemplateServer.exe
+
+-port=7777
+-log
+
+0.
+set AWS_PROFILE=rango-profile
+aws sso login --profile rango-profile  (no need profile if you did the "set ...")
+
+1. no need for EC2
+2. no need for EC2
+3. no need for EC2
+4. Create EC2 session
+aws gamelift create-game-session ^
+ --fleet-id fleet-b38c2937-f9cd-4816-9693-742857bf3645  ^
+ --maximum-player-session-count 2 ^
+ --name EC2Session ^
+ --region us-east-2 ^
+ --location us-east-2 //now can be skipped if it is currently shown as "Home location" in the console::EC2fleet::locations - but this is always required by anywhere fleet!
+
++just the same formula
+(1) change to the new fleet id  (EC2FleetId is now different than AnywhereFleetId)
+(2) anywhere fleet need "custom-location" (hence create Location for AnywhereFleet lesson)
+, but EC2 fleet need to take "pre provided-region" as "location" 
+, if you don't enter "region" when create EC2 session it will default to "Home region" (that is seen in that EC2 fleet in the console::GameLift::ThatEC2Fleet - currently )
+; WARNING: that is not to say that you shouldn't/don't need to enter "--region __" 
+, you just simply do it normally along location it both cases :)
+(3) change the session name as well I guess
+
+@@note: 
++Create new Session will help you see "IpAddress" (HostId) that the session is created on
+, so you can use it for testing connections from clients to the remote server if you want (because EC2Fleet didn't show any HostId for you before you create the session at all nor are we sure it is not changed after we know it)
+
+
+
+
+
