@@ -7,9 +7,20 @@ public class DedicatedServers : ModuleRules
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 
         	//PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput", "PhysicsCore", "GameLiftServerSDK" });
-        	PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "GameLiftServerSDK"});
+        	PublicDependencyModuleNames.AddRange(new string[]
+	        {
+		        "Core", 
+		        "CoreUObject", 
+		        "Engine", 
+		        "GameLiftServerSDK"
+	        });
 
 		//PrivateDependencyModuleNames.AddRange(new string[] { "GameplayTags", "Slate", "SlateCore" });
-		PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });
+		PrivateDependencyModuleNames.AddRange(new string[]
+		{
+			"Slate", 
+			"SlateCore",
+			"UMG"  //stephen confident putting it here lol (with some risk to reduce compile time)
+		});
 	}
 }
