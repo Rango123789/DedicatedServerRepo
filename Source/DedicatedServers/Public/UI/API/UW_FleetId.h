@@ -6,6 +6,7 @@
 #include "Blueprint/UserWidget.h"
 #include "UW_FleetId.generated.h"
 
+class UTextBlock;
 /**
  * 
  */
@@ -13,4 +14,7 @@ UCLASS()
 class DEDICATEDSERVERS_API UUW_FleetId : public UUserWidget
 {
 	GENERATED_BODY()
+public:
+	UPROPERTY(meta =(BindWidget))
+	TObjectPtr<UTextBlock> TextBlock_FleetId;
 };

@@ -2,6 +2,11 @@
 
 
 #include "DS_GameMode.h"
+#include "DedicatedServers/DedicatedServers.h"
+/*NOTE: if you include a file that is directly in Source/ModuleName for a file inside private/public folder
+, you need to start from "ModuleFolderName/[ModuleName].h"
+, simply it is NOT in [Public] folder at all!*/
+
 
 #if WITH_GAMELIFT
 #include "GameLiftServerSDK.h"
@@ -10,13 +15,7 @@
 
 #include "GenericPlatform/GenericPlatformOutputDevices.h"
 
-/*
-we did this in GAS course (at least Stephen does, and define it in "project.h" )
-DECLARE_LOG_CATEGORY_EXTERN(CustomLogName[/LogTemp/...] , [Log(white)/Warning(yellow)/Error(red)] , All  ) 
-
-DEFINE_LOG_CATEGORY(CustomLogName).
- */
-DEFINE_LOG_CATEGORY(GameServerLog);
+/*DEFINE_LOG_CATEGORY(GameServerLog);*/
 
 //don't know why AWS try to find the DefaultPawnClass, isn't already set in BP_GameMode?
 ADS_GameMode::ADS_GameMode() :

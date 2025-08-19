@@ -8,7 +8,7 @@
 
 struct FProcessParameters;
 
-DECLARE_LOG_CATEGORY_EXTERN(GameServerLog, Log, All);
+/*DECLARE_LOG_CATEGORY_EXTERN(GameServerLog, Log, All);*/
 
 /**
  * 
