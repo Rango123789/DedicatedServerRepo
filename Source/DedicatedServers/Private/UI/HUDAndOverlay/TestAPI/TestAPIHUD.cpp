@@ -2,8 +2,8 @@
 
 
 //I thought we can do #include "TestAPIHUD.h" directly? well it in fact needs to start from the associate Public folder lol :D :D
-#include "UI/TestAPI/TestAPIHUD.h"
-#include "UI/TestAPI/TestAPIOverlay.h"
+#include "UI/HUDAndOverlay/TestAPI/TestAPIHUD.h"
+#include "UI/HUDAndOverlay/TestAPI/TestAPIOverlay.h"
 #include "Blueprint/UserWidget.h"
 
 void ATestAPIHUD::BeginPlay()

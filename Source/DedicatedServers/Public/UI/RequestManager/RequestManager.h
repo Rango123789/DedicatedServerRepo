@@ -19,4 +19,6 @@ public:
 	UPROPERTY(EditAnywhere)
 	TObjectPtr<UDA_APIInfo> DA_APIInfo_GameSessions;
 	
+	bool CheckErrors(TSharedPtr<FJsonObject> JsonObject);
+    void DumpMetadata(TSharedPtr<FJsonObject> JsonObject);
 };

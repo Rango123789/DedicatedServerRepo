@@ -1,7 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "DS_GameMode.h"
+#include "Game/DS_GameMode.h"
 #include "DedicatedServers/DedicatedServers.h"
 /*NOTE: if you include a file that is directly in Source/ModuleName for a file inside private/public folder
 , you need to start from "ModuleFolderName/[ModuleName].h"

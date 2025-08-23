@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "DS_GameMode.h"
+#include "Game/DS_GameMode.h"
 #include "GameFramework/GameMode.h"
 #include "ShooterGameModeBase.generated.h"
 
