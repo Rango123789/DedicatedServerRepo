@@ -24,7 +24,7 @@ void URequestManager_TestAPIOverlay::SendRequest_ListFleets()
 	HttpRequest->OnProcessRequestComplete().BindUObject(this, &ThisClass::OnResponse_ListFleets);
 
 //Step3: SetURL,SetVerb,SetHeader for the HttpRequest
-	FString InvokeURL = DA_APIInfo_GameSessions->GetInvokeURLByResourceTag(DedicatedServersTags::GameSessionsAPI::ListFleets);
+	FString InvokeURL = DA_APIInfo->GetInvokeURLByResourceTag(DedicatedServersTags::GameSessionsAPI::ListFleets);
 	HttpRequest->SetURL(InvokeURL);
 
 	HttpRequest->SetVerb(TEXT("GET")); //it defaults to GET if you don't set anyway

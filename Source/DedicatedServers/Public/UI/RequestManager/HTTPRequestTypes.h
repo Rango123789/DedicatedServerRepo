@@ -150,7 +150,51 @@ struct FDSGameSession
 	void Dump() const;
 };
 
+USTRUCT()
+struct FDSPlayerSession
+{
+	GENERATED_BODY()
 
+	//stephen choose double, but I choose int64. AWS timestamps = [ X miliseconds - epoch point]
+	//UPDATE: it is in fact FString, we don't care how AWS count time internally.
+	UPROPERTY()
+	FString CreationTime{}; // epoch time
+
+	UPROPERTY()
+	FString DnsName{};
+
+	UPROPERTY()
+	FString FleetArn{};
+
+	UPROPERTY()
+	FString FleetId{};
+
+	UPROPERTY()
+	FString GameSessionId{};
+
+	UPROPERTY()
+	FString IpAddress{};
+
+	UPROPERTY()
+	FString PlayerData{};
+
+	UPROPERTY()
+	FString PlayerId{};
+
+	UPROPERTY()
+	FString PlayerSessionId{};
+
+	UPROPERTY()
+	int32 Port{};
+
+	UPROPERTY()
+	FString Status{};
+
+	UPROPERTY()
+	FString TerminationTime{}; 
+
+	void Dump();
+};
 
 
 
