@@ -42,6 +42,10 @@ public:
 	UPROPERTY(meta =(BindWidget))
 	TObjectPtr<UButton> Button_Back;
 
+	UFUNCTION()
+	void UpdateStatusMessage(const FString& StatusMessage, bool bResetWidgetButtons);
+	void ClearTextBoxes() const;
+
 protected:
 	bool IsValidEmail();
 	bool IsValidPassword(FString& OutStatusMessage);
@@ -50,4 +54,5 @@ protected:
 	void OnTextChangedSharedCallback(const FText& NewText);
 	
 	virtual void NativeConstruct() override;
+
 };

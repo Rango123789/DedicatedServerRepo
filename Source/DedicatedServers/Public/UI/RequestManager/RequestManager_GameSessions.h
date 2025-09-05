@@ -8,7 +8,7 @@
 #include "RequestManager_GameSessions.generated.h"
 
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FStatusMessageDelegate, const FString& , StatusMessage, bool, bResetJoinGameButton);
+
 /**
  * 
  */
@@ -18,10 +18,8 @@ class DEDICATEDSERVERS_API URequestManager_GameSessions : public URequestManager
 	GENERATED_BODY()
 
 public:
-	
 	UPROPERTY(BlueprintAssignable)
 	FStatusMessageDelegate StatusMessageDelegate;
-
 	
 	void SendRequest_FindAndJoinGameSession();
 	void OnResponse_CreatePlayerSession(TSharedPtr<IHttpRequest> HttpRequest, TSharedPtr<IHttpResponse> HttpResponse, bool bWasSuccessful);

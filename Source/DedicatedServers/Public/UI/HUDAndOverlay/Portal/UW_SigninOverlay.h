@@ -6,6 +6,7 @@
 #include "Blueprint/UserWidget.h"
 #include "UW_SigninOverlay.generated.h"
 
+class ULocalPlayerSubsystem_DS;
 class URequestManager_GameSessions;
 class UButton;
 class UUW_SuccessConfirmSignUpPage;
@@ -27,7 +28,7 @@ public:
 protected:
 /*To WBP_NewOverlay soon	
 	UFUNCTION()
-	void OnStatusMessageDelegateBroadcast(const FString& StatusMessage, bool bResetJoinGameButton);
+	void OnStatusMessageDelegateBroadcast(const FString& StatusMessage, bool bResetWidgetButtons);
 	UFUNCTION()
 	void OnJoinGameButtonClicked();
 */
@@ -38,6 +39,13 @@ protected:
 	void OnSignUpButtonClicked();
 	UFUNCTION()
 	void OnConfirmButtonClicked();
+
+	UFUNCTION()
+	void OnSignUpRequestSucceed();
+	UFUNCTION()
+	void OnConfirmSignUpRequestSucceed();
+	UFUNCTION()
+	void OnSignInRequestSucceed();
 	
 	virtual void NativeConstruct() override;
 
@@ -100,4 +108,6 @@ protected:
 	void ShowConfirmSignUpPage();
 	UFUNCTION()
 	void ShowSuccessConfirmSignUpPage();
+
+	ULocalPlayerSubsystem_DS* GetLocalPlayerSubsystem_DS();
 };

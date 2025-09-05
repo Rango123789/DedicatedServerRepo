@@ -39,4 +39,6 @@ public:
 
 	UPROPERTY(meta =(BindWidget))
 	TObjectPtr<UButton> Button_Quit;
+	UFUNCTION()
+	void UpdateStatusMessage(const FString& StatusMessage, bool bResetWidgetButtons);
 };

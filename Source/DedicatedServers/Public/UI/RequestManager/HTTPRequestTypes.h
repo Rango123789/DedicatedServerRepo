@@ -98,6 +98,34 @@ USTRUCT()
 struct FDSGameSession
 {
 	GENERATED_BODY()
+/*{
+   "GameSession": { 
+      "CreationTime": number,
+      "CreatorId": "string",
+      "CurrentPlayerSessionCount": number,
+      "DnsName": "string",
+      "FleetArn": "string",
+      "FleetId": "string",
+      "GameProperties": [ 
+         { 
+            "Key": "string",
+            "Value": "string"
+         }
+      ],
+      "GameSessionData": "string",
+      "GameSessionId": "string",
+      "IpAddress": "string",
+      "Location": "string",
+      "MatchmakerData": "string",
+      "MaximumPlayerSessionCount": number,
+      "Name": "string",
+      "PlayerSessionCreationPolicy": "string",
+      "Port": number,
+      "Status": "string",
+      "StatusReason": "string",
+      "TerminationTime": number
+   }
+}*/
 
 	//fill my members here:
 	UPROPERTY()
@@ -112,13 +140,13 @@ struct FDSGameSession
 	UPROPERTY()
 	FString FleetId{};
 
-	/*OPTION1: my AI Assistant idea
+	//OPTION1: my AI Assistant idea
 	UPROPERTY()
-	TArray<FDSGameProperty> GameProperties{};*/
+	TArray<FDSGameProperty> GameProperties{};
 	
-	//OPTION2:  stephen idea - it also works, which is cool!
+	/*OPTION2:  stephen idea - it also works, but imperfect, I don't this is a good idea at all!
 	UPROPERTY()
-	TMap<FString, FString> GameProperties{}; 
+	TMap<FString, FString> GameProperties{}; */
 
 	UPROPERTY()
 	FString GameSessionId{};
@@ -155,7 +183,7 @@ struct FDSPlayerSession
 {
 	GENERATED_BODY()
 
-	//stephen choose double, but I choose int64. AWS timestamps = [ X miliseconds - epoch point]
+	//stephen choose double, but I choose int64. AWS timestamps = [ X milliseconds - epoch point]
 	//UPDATE: it is in fact FString, we don't care how AWS count time internally.
 	UPROPERTY()
 	FString CreationTime{}; // epoch time
@@ -196,11 +224,131 @@ struct FDSPlayerSession
 	void Dump();
 };
 
+//sub struct for FDSSignIn
+USTRUCT()
+struct FAuthenticationResult
+{
+	GENERATED_BODY()
 
+	UPROPERTY()
+	FString AccessToken{};
+	UPROPERTY()
+	int32 ExpiresIn{}; //in seconds, and expiring time should be in limit of int32 so yeah
+	UPROPERTY()
+	FString IdToken{};
+	UPROPERTY()
+	TMap<FString,FString> NewDeviceMetadata{}; //or just create a FSubStruct TIRE3 lol
+	UPROPERTY()
+	FString RefreshToken{};
+	UPROPERTY()
+	FString TokenType{};
 
+	void Dump() const;
+};
 
+USTRUCT()
+struct FChallengeParameter
+{
+	GENERATED_BODY()
+	
+	UPROPERTY()
+	TMap<FString, FString> Parameters{};
+};
 
+USTRUCT()
+struct FDSSignIn
+{
+	GENERATED_BODY()
+/*
+{
+   "AuthenticationResult": { 
+      "AccessToken": "string",
+      "ExpiresIn": number,
+      "IdToken": "string",
+      "NewDeviceMetadata": { 
+         "DeviceGroupKey": "string",
+         "DeviceKey": "string"
+      },
+      "RefreshToken": "string",
+      "TokenType": "string"
+   },
+   "AvailableChallenges": [ "string" ],
+   "ChallengeName": "string",
+	
+	//this is be considered { TMap< , > } do NOT confuse with  Key: [{} , {} ] 
+   "ChallengeParameters": { 
+      "string" : "string" 
+   },
+   "Session": "string"
+}*/
+	//Id, access, refress tokens are in here:
+	UPROPERTY()
+	FAuthenticationResult AuthenticationResult{};
 
+	UPROPERTY()
+	TArray<FString> AvailableChallenges{};
+	UPROPERTY()
+	FString ChallengeName{};
+
+	/*you don't want to create a TMap<FString,FString> directly lol, from now on I follow the exact pattern in all tires, won't simplify it
+	* @@note: this is "unclear" that we don't even have any name for the field
+		, also the DOC didn't make it clear that we could have many pair of "string" : "string" in it
+		, so for the best we assume it could be more than one pair
+		, hence TMap<Fstring,FString> is perfect in any case.
+	* */
+	UPROPERTY()
+	FChallengeParameter ChallengeParameters{}; 
+	
+	UPROPERTY()
+	FString Session{};
+
+	void Dump() const;
+};
+
+//substruct for FDSSignUp
+USTRUCT()
+struct FCodeDeliveryDetails
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	FString AttributeName{};
+	UPROPERTY()
+	FString DeliveryMedium{};
+	UPROPERTY()
+	FString Destination{};
+};
+
+USTRUCT()
+struct FDSSignUp
+{
+	GENERATED_BODY()
+/*
+{
+   "CodeDeliveryDetails": { 
+      "AttributeName": "string",
+      "DeliveryMedium": "string",
+      "Destination": "string"
+   },
+   "Session": "string",
+   "UserConfirmed": boolean,
+   "UserSub": "string"
+}*/
+
+	UPROPERTY()
+	FCodeDeliveryDetails CodeDeliveryDetails{};
+
+	UPROPERTY()
+	FString Session{};
+	
+	UPROPERTY()
+	bool UserConfirmed{};
+	
+	UPROPERTY()
+	FString UserSub{};
+
+	void Dump() const;
+};
 
 
 

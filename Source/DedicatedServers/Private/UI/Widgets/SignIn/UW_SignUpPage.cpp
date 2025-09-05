@@ -21,6 +21,28 @@ void UUW_SignUpPage::NativeConstruct()
 	
 }
 
+void UUW_SignUpPage::UpdateStatusMessage(const FString& StatusMessage, bool bResetWidgetButtons)
+{
+	TextBlock_StatusMessage->SetText(FText::FromString(StatusMessage));
+
+	if(bResetWidgetButtons)
+	{
+		Button_SignUp->SetIsEnabled(true);
+	}
+}
+
+void UUW_SignUpPage::ClearTextBoxes() const
+{
+	//UText__::SetText("") and SetText(FText("")) NOT valid , SetText(FText::FromString("")); is valid but lengthy
+	EditableTextBox_UserName->SetText(FText::GetEmpty()); 
+	EditableTextBox_Email->SetText(FText::GetEmpty());
+	EditableTextBox_Password->SetText(FText::GetEmpty());
+	EditableTextBox_ConfirmPassword->SetText(FText::GetEmpty());
+
+	//also clear TextBlock_StatusMessage too:
+	TextBlock_StatusMessage->SetText(FText::GetEmpty());
+}
+
 
 /*
 +OPTION1: You bind all EditableTextBox to the same callback to handle all at once

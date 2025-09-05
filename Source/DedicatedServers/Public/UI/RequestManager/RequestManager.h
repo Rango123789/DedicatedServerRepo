@@ -7,6 +7,12 @@
 #include "UObject/Object.h"
 #include "RequestManager.generated.h"
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FStatusMessageDelegate, const FString&, StatusMessage, bool,
+                                             bResetWidgetButtons);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FRequestSucceedDelegate);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FRefreshTokensRequestSucceedDelegate , const FString&, InUsername, const FAuthenticationResult& , InAuthenticationResult);
+
+
 class UDA_APIInfo;
 /**
  * 
@@ -16,6 +22,10 @@ class DEDICATEDSERVERS_API URequestManager : public UObject
 {
 	GENERATED_BODY()
 public:
+	/*
+	UPROPERTY(BlueprintAssignable)
+	FStatusMessageDelegate StatusMessageDelegate;*/
+	
 	UPROPERTY(EditAnywhere)
 	TObjectPtr<UDA_APIInfo> DA_APIInfo;
 	

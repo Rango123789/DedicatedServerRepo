@@ -33,4 +33,13 @@ public:
 
 	UPROPERTY(meta =(BindWidget))
 	TObjectPtr<UButton> Button_Back;
+	UFUNCTION()
+	void UpdateStatusMessage(const FString& StatusMessage, bool bResetWidgetButtons);
+	void ClearTextBoxes();
+
+protected:
+	UFUNCTION()
+	void OnVerifimationCodeTextChanged(const FText& NewText);
+	virtual void NativeConstruct() override;
+	
 };
