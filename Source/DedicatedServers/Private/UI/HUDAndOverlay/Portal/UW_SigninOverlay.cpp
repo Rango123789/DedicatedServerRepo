@@ -147,14 +147,25 @@ void UUW_SigninOverlay::OnSignInRequestSucceed()
 {
 //the best place to help to set things to ULocalPlayer::DSSubsystem:
 	ULocalPlayerSubsystem_DS* LocalPlayerSubsystem_DS = GetLocalPlayerSubsystem_DS();
-	LocalPlayerSubsystem_DS->SetAuthenticationResultAndPortalManager( RequestManager_Portal->LastDSSignIn.AuthenticationResult, RequestManager_Portal);
+	if (IsValid(LocalPlayerSubsystem_DS) == false) return;
 	
-//
+	LocalPlayerSubsystem_DS->SetAuthenticationResultAndPortalManager( RequestManager_Portal->LastDSSignIn.AuthenticationResult, RequestManager_Portal, RequestManager_Portal->Username_SignIn);
+
+	//this solved puzzle: how to bind RM_Portal::delegate without needing to cast to it lol
+	RequestManager_Portal->RefreshTokensRequestSucceedDelegate.AddDynamic(LocalPlayerSubsystem_DS, &ULocalPlayerSubsystem_DS::OnRefreshTokensRequestSucceed);
+
+//warning: you can't call PortalHUD::OnSignIn in here, because it will try to destroy this hosting 'UUW_SigninOverlay' that currently calling this very function lol. all functions are gone, if the hosting object is gone right? but perhaps you can do it "FINAL" in the PortalHUD::OnSignIn
+//solution1: call it after "OnResponse_SignIn::SignInRequestSucceedDelegate.Broadcast();" - that will in fact trigger the whole delegate chain, i.e even after this "UUW_SigninOverlay::OnSignInRequestSucceed()" ! yeah! - I talk about this logic many time: "delegate chain" always execute before the next code.
+//solution2: set Visibility of WBP_SignInOverlay to "Invisible", set timer to destroy itself. or pass in "this" to be destroyed in PortalHUD::SignIn
+//solution3: just use UPROPERTY() URequestManager_Portal* to keep it alive in DSSusbstem lol. because I did use delegate to the main one-way dependency already, what bother you to let PortalManager gone lol!
 	
 }
 
-ULocalPlayerSubsystem_DS* UUW_SigninOverlay::GetLocalPlayerSubsystem_DS()
+//why we can't make the function static? well because UObject::GetWorld() is different when call on different HOSTING object lol
+ULocalPlayerSubsystem_DS* UUW_SigninOverlay::GetLocalPlayerSubsystem_DS() const
 {
+	if (GetWorld() == nullptr) return nullptr;
+	
 //get FirstLocalPlayer
 	ULocalPlayer* FirstLocalPlayer = GetWorld()->GetFirstLocalPlayerFromController(); //or GEngine->GetFirstGamePlayer(GetWorld());
 	if (IsValid(FirstLocalPlayer))

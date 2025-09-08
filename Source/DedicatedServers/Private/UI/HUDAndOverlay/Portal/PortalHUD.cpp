@@ -4,6 +4,7 @@
 #include "UI/HUDAndOverlay/Portal/PortalHUD.h"
 #include "UI/HUDAndOverlay/Portal/UW_SigninOverlay.h"
 #include "Blueprint/UserWidget.h"
+#include "UI/HUDAndOverlay/Dashboard/UW_DashboardOverlay.h"
 
 void APortalHUD::BeginPlay()
 {
@@ -22,4 +23,17 @@ void APortalHUD::BeginPlay()
 	FInputModeGameAndUI InputModeGameAndUI;
 	PlayerOwner->SetInputMode(InputModeGameAndUI);
 	PlayerOwner->SetShowMouseCursor(true);
+}
+
+void APortalHUD::PostSignIn()
+{
+	//remove the old overlay from viewport:
+	if(IsValid(UW_SigninOverlay)) UW_SigninOverlay->RemoveFromParent();
+	
+	//add the new one:
+	if (IsValid(PlayerOwner) && UW_DashboardOverlay_Class) //i don't think this is needed
+	{
+		UW_DashboardOverlay = CreateWidget<UUW_DashboardOverlay>(PlayerOwner, UW_DashboardOverlay_Class);
+		UW_DashboardOverlay->AddToViewport();
+	}
 }

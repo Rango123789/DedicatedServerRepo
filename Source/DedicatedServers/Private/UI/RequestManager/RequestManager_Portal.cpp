@@ -9,6 +9,7 @@
 #include "GameplayTags/DedicatedServersTags.h"
 #include "Interfaces/IHttpResponse.h"
 #include "Kismet/GameplayStatics.h"
+#include "UI/HUDAndOverlay/Portal/PortalHUD.h"
 
 //GetWorld() ---> HUD->WBP_Overlay->PortalManager  -- each decide will have each "GetWorld()" and so got a "[First]LocalPlayerController" (First because it could be that 2 players play on the same device in some game lol). the point is that make sure "GetWorld" in current UObject Hosting class work.
 //note: GetFirstPlayerController will always return some PC even if it is DedicatedServer or ListenServer
@@ -49,7 +50,7 @@ void URequestManager_Portal::SendRequest_SignUp(const FString& Username, const F
 	JsonObject->SetStringField("Email", Email);
 	JsonObject->SetStringField("Password", Password);
 
-	LastUsername_SignUp = Username; 
+	Username_SignUp = Username; 
 
 	//Convert this JsonObject into JsonString:
 	FString JsonString;
@@ -149,7 +150,7 @@ void URequestManager_Portal::SendRequest_ConfirmSignUp(const FString& Confirmati
 	
 	//SHOCKING NEWS: using LastDSSignUp.UserSub give me "ExpiredCodeException" (meaning it still accept the request but behave wierdly)...where I try "LastUserName directly it works!
 	//JsonObject->SetStringField("Username", LastDSSignUp.UserSub);  //Cognito allow to use UserSub instead of "Username" (if it isn't available)
-	JsonObject->SetStringField("Username", LastUsername_SignUp); 
+	JsonObject->SetStringField("Username", Username_SignUp); 
 	//Convert this JsonObject into JsonString:
 	FString JsonString;
 	TSharedRef<TJsonWriter<>> JsonWriter = TJsonWriterFactory<>::Create(&JsonString); //JsonString is linked after this
@@ -260,7 +261,7 @@ void URequestManager_Portal::SendRequest_SignIn(const FString& Username, const F
 	//there is no VerificationCode field in AWS lol, there is "ConfirmationCode"
 	JsonObject->SetStringField("Username", Username); 
 	JsonObject->SetStringField("Password", Password);
-	LastUsername_SignIn = Username;
+	Username_SignIn = Username;
 	
 	//Convert this JsonObject into JsonString:
 	FString JsonString;
@@ -320,12 +321,19 @@ void URequestManager_Portal::OnResponse_SignIn(TSharedPtr<IHttpRequest> HttpRequ
 
 //step5: [possible step] broadcast all relevant delegates (enable back the button and so on). 
 	SignInStatusMessageDelegate.Broadcast(TEXT("Sign in successfully!"), true); //(*)
-	SignInRequestSucceedDelegate.Broadcast();
 
+	SignInRequestSucceedDelegate.Broadcast(); //this chain will get all job done (saving tokens to DSSubsystem at least)
+
+//step6: call PortalHUD::OnSignIn (/PostSignIn) to destroy WBP_SignInOverlay (potentially destroy this PortalManager too - but who know let's see)
+	if (APlayerController* FirstLocalPC = GEngine->GetFirstLocalPlayerController(GetWorld()))
+	{
+		//if you do "APortalHUD : IPortalInterface", then from here you would
+		APortalHUD* PortalHUD = FirstLocalPC->GetHUD<APortalHUD>();
+		if(PortalHUD) PortalHUD->PostSignIn();
+	}
+	
 	GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Red, FString("Sign in successfully!"), false);	
 }
-
-
 
 //WORKING ON: no longer need broadcast any StatusMessageDelegate
 void URequestManager_Portal::SendRequest_RefreshTokens(const FString& Username, const FString& RefreshToken)
@@ -414,10 +422,75 @@ void URequestManager_Portal::OnResponse_RefreshTokens(TSharedPtr<IHttpRequest> H
 //step4: [possible step] send another request if needed.
 
 //step5: [possible step] broadcast all relevant delegates (enable back the button and so on).
-	RefreshTokensRequestSucceedDelegate.Broadcast(LastUsername_SignIn, LastDSSignIn.AuthenticationResult);
+	RefreshTokensRequestSucceedDelegate.Broadcast(Username_SignIn, LastDSSignIn.AuthenticationResult);
 
 	GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Red, FString("RefreshTokens successfully!"), false);	
 }
+
+void URequestManager_Portal::SendRequest_SignOut(const FString& AccessToken)
+{
+	//Step1: Create an EMPTY request:
+	TSharedRef<IHttpRequest, ESPMode::ThreadSafe> HttpRequest = FHttpModule::Get().CreateRequest();
+	
+//Step2: bind a callback to execute when "response" reach back:
+	HttpRequest->OnProcessRequestComplete().BindUObject(this, &ThisClass::OnResponse_SignOut);
+	
+//Step3: SetURL,SetVerb,SetHeader for the HttpRequest:
+	FString InvokeURL = DA_APIInfo->GetInvokeURLByResourceTag(DedicatedServersTags::PortalAPI::SignOut);
+	HttpRequest->SetURL(InvokeURL);
+
+	//shocking news: we thought it is "GET", but as long as we need to send the request with Body ({JsonString}) we need "POST". No why, this is conventional lol.
+	HttpRequest->SetVerb("POST");
+	HttpRequest->SetHeader("Content-Type", "application/json");
+
+//step3B: we need SetContent in this case, we can event make a re-usable function for this in GENERIC case!
+	//ready JsonObject and set fields and values on it:
+	TSharedPtr<FJsonObject> JsonObject = MakeShared<FJsonObject>(); //OR MakeShareable(new FJsonObject())
+
+	//there is no VerificationCode field in AWS lol, there is "ConfirmationCode"
+	JsonObject->SetStringField("AccessToken", AccessToken);
+	
+	//Convert this JsonObject into JsonString:
+	FString JsonString;
+	TSharedRef<TJsonWriter<>> JsonWriter = TJsonWriterFactory<>::Create(&JsonString); //JsonString is linked after this
+	FJsonSerializer::Serialize(JsonObject.ToSharedRef() , JsonWriter); //	FJsonObjectConverter::XToY won't work
+	//Now set Content for our HttpRequest with that JsonString:
+	HttpRequest->SetContentAsString(JsonString);
+	
+//Step4: actually send it (Unreal API know how to access our OS system, or it has a browser/framework itself to do it at higher level so don't worry):
+	HttpRequest->ProcessRequest();
+
+	GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Red, FString("SignOut request sent"), false);
+}
+
+void URequestManager_Portal::OnResponse_SignOut(TSharedPtr<IHttpRequest> HttpRequest,
+	TSharedPtr<IHttpResponse> HttpResponse, bool bWasSuccessful)
+{
+	GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Red, FString("SignOut response received"), false);
+//step0: return early if our request didn't even reach the server
+	if (bWasSuccessful == false) return;
+
+//step1: get the PayloadString and convert to PlayLoadJsonObject 
+	TSharedPtr<FJsonObject> JsonObject;
+	bool bConvertSucceed = JsonStringToJsonObject(HttpResponse->GetContentAsString(), JsonObject);
+	if (bConvertSucceed ==false) return;
+
+//step2: check if any error in the response:
+	if (CheckErrors(JsonObject)) return;
+
+//step3: JsonObject -> FMatchingStruct/FSubMatchingStruct, (broadcast it back to be handled in the associate WBP_Overlay if needed)
+
+//step4: [possible step] send another request if needed.
+
+//step5: [possible step] broadcast all relevant delegates (enable back the button and so on). 
+	SignOutRequestSucceedDelegate.Broadcast(); //this chain will get all job done (saving tokens to DSSubsystem at least)
+
+	GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Red, FString("SignOut successfully!"), false);
+}
+
+
+
+
 
 
 

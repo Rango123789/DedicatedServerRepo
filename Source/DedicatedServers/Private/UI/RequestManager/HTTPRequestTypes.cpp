@@ -144,6 +144,10 @@ void FDSSignIn::Dump() const
         AuthenticationResult.TokenType.IsEmpty() ? TEXT("<empty>") : *AuthenticationResult.TokenType);
     UE_LOG(LogTemp, Display, TEXT("  }"));
 
+	//log Email and Username here as well:
+	UE_LOG(LogTemp, Display, TEXT("  Email: %s"), *Email);
+	UE_LOG(LogTemp, Display, TEXT("  Username: %s"), *Username);
+
     UE_LOG(LogTemp, Display, TEXT("}"));
 }
 

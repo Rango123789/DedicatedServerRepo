@@ -301,6 +301,13 @@ struct FDSSignIn
 	
 	UPROPERTY()
 	FString Session{};
+	
+	//UPDATE:
+	UPROPERTY()
+	FString Email;
+	
+	UPROPERTY()
+	FString Username; //unfortunately, the return is in "lowercase", don't use it
 
 	void Dump() const;
 };

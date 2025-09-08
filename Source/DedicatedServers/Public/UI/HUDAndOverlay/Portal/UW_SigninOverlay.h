@@ -109,5 +109,5 @@ protected:
 	UFUNCTION()
 	void ShowSuccessConfirmSignUpPage();
 
-	ULocalPlayerSubsystem_DS* GetLocalPlayerSubsystem_DS();
+	ULocalPlayerSubsystem_DS* GetLocalPlayerSubsystem_DS() const;
 };

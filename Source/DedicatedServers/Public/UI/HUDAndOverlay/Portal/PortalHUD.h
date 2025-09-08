@@ -6,6 +6,7 @@
 #include "GameFramework/HUD.h"
 #include "PortalHUD.generated.h"
 
+class UUW_DashboardOverlay;
 class UUW_SigninOverlay;
 /**
  * 
@@ -16,9 +17,11 @@ class DEDICATEDSERVERS_API APortalHUD : public AHUD
 	GENERATED_BODY()
 
 public:
+	void PostSignIn();
 	
 protected:
 	virtual void BeginPlay() override;
+	
 
 	/*@@IMPORTANT notes:
 	(1) Manager is added to WBP_HUD help it handle side works about HTTP requesting and receiving
@@ -29,6 +32,11 @@ protected:
 	TSubclassOf<UUW_SigninOverlay> UW_SigninOverlay_Class;
 	UPROPERTY()
 	TObjectPtr<UUW_SigninOverlay> UW_SigninOverlay;
+
+	UPROPERTY(EditAnywhere)
+	TSubclassOf<UUW_DashboardOverlay> UW_DashboardOverlay_Class;
+	UPROPERTY()
+	TObjectPtr<UUW_DashboardOverlay> UW_DashboardOverlay;
 
 public:
 	

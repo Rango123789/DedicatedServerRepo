@@ -6,6 +6,7 @@
 #include "HTTPRequestTypes.h"
 #include "RequestManager.h"
 #include "Interfaces/IHttpRequest.h"
+#include "Interfaces/PortalInterface.h"
 #include "RequestManager_Portal.generated.h"
 
 //DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FStatusMessageDelegate, const FString& , StatusMessage, bool, bResetWidgetButtons);
@@ -13,7 +14,7 @@
  * 
  */
 UCLASS()
-class DEDICATEDSERVERS_API URequestManager_Portal : public URequestManager
+class DEDICATEDSERVERS_API URequestManager_Portal : public URequestManager, public IPortalInterface
 {
 	GENERATED_BODY()
 public:
@@ -46,16 +47,21 @@ public:
 	UPROPERTY(BlueprintAssignable)
 	FRefreshTokensRequestSucceedDelegate RefreshTokensRequestSucceedDelegate;
 	
+	UPROPERTY(BlueprintAssignable)
+	FRequestSucceedDelegate SignOutRequestSucceedDelegate;
+	
 	UPROPERTY()
 	FDSSignUp LastDSSignUp;
 	UPROPERTY()
-	FString LastUsername_SignUp;
-	UPROPERTY()
-	FString LastUsername_SignIn;
-
+	FString Username_SignUp;
+	
 	UPROPERTY()
 	FDSSignIn LastDSSignIn;
-	
+	UPROPERTY()
+	FString Username_SignIn;
+	UPROPERTY()
+	FString Email_SignIn; //OPTIONAL, we eventually store it into DSSubsystem
+
 	//some callbacks for WBP_SignOverlay::Buttons
 		//this one directly bound to "DYNAMIC_DELEGATE" so it need to be "UFUNCTION"
 	UFUNCTION()
@@ -67,13 +73,17 @@ public:
 	void SendRequest_ConfirmSignUp(const FString& ConfirmationCode);	
 	void OnResponse_ConfirmSignUp(TSharedPtr<IHttpRequest> HttpRequest, TSharedPtr<IHttpResponse> HttpResponse, bool bWasSuccessful);
 	
-	void SendRequest_SignIn(const FString& Username, const FString& Password);
+	void SendRequest_SignIn(const FString& Username, const FString& Password); //Username because of "SECRET_HASH"
 	void OnResponse_SignIn(TSharedPtr<IHttpRequest> HttpRequest, TSharedPtr<IHttpResponse> HttpResponse, bool bWasSuccessful);
 
 	//Ironically you still need Username (as my client app is with "secretkey" so need secret_hash so need "Username" in its way)
-	void SendRequest_RefreshTokens(const FString& Username, const FString& RefreshToken);
+	virtual void SendRequest_RefreshTokens(const FString& Username, const FString& RefreshToken) override;
 	void OnResponse_RefreshTokens(TSharedPtr<IHttpRequest> HttpRequest, TSharedPtr<IHttpResponse> HttpResponse, bool bWasSuccessful);
-	
+
+//Sign out
+	void SendRequest_SignOut(const FString& AccessToken); //Sign Out don't need "SECRET_HASH"
+	void OnResponse_SignOut(TSharedPtr<IHttpRequest> HttpRequest, TSharedPtr<IHttpResponse> HttpResponse, bool bWasSuccessful);
+
 protected:
 	
 public:

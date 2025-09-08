@@ -18,9 +18,11 @@ namespace DedicatedServersTags
 	namespace PortalAPI
 	{
 	//next time name those lambda "SignIn", "SignUp", "ConfirmSignUp" without the prefix Cognito for consistency lol? yes! surely!
-		UE_DEFINE_GAMEPLAY_TAG_COMMENT(SignIn, "DedicatedServersTags.PortalAPI.SignIn", "retrieve ID, Access, Refresh tokens from Cognito's User Pool - GET"); //stephen in Portal API
+		UE_DEFINE_GAMEPLAY_TAG_COMMENT(SignIn, "DedicatedServersTags.PortalAPI.SignIn", "retrieve ID, Access, Refresh tokens from Cognito's User Pool - POST"); //having body content must POST+
 		UE_DEFINE_GAMEPLAY_TAG_COMMENT(SignUp, "DedicatedServersTags.PortalAPI.SignUp", "create new user on Cognito's User Pool - POST"); //stephen in Portal API
 		//the state is "unconfirmed" to "confirmed" is just "an update" (the field/data already created since SignUp process!)
 		UE_DEFINE_GAMEPLAY_TAG_COMMENT(ConfirmSignUp, "DedicatedServersTags.PortalAPI.ConfirmSignUp", "Confirm a new user on Cognito's User Pool - PUT"); //stephen in Portal API
+
+		UE_DEFINE_GAMEPLAY_TAG_COMMENT(SignOut, "DedicatedServersTags.PortalAPI.SignOut", "Sign out - POST"); //stephen in Portal API
 	}
 }
