@@ -7,6 +7,7 @@
 #include "DedicatedServers/DedicatedServers.h"
 #include "UI/RequestManager/HTTPRequestTypes.h"
 #include "GameFramework/PlayerState.h"
+#include "Player/LocalPlayerSubsystem_DS.h"
 
 bool URequestManager::CheckErrors(TSharedPtr<FJsonObject> JsonObject)
 {
@@ -98,4 +99,17 @@ FString URequestManager::GetUniqueIdFromPlayerState()
 	}
 	
 	return FString();
+}
+
+ULocalPlayerSubsystem_DS* URequestManager::GetLocalPlayerSubsystem_DS() const
+{
+	if (GetWorld() == nullptr) return nullptr;
+	
+//get FirstLocalPlayer
+	ULocalPlayer* FirstLocalPlayer = GetWorld()->GetFirstLocalPlayerFromController(); //or GEngine->GetFirstGamePlayer(GetWorld());
+	if (IsValid(FirstLocalPlayer))
+	{
+		return FirstLocalPlayer->GetSubsystem<ULocalPlayerSubsystem_DS>();	
+	}
+	return nullptr;;
 }

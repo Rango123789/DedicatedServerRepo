@@ -16,8 +16,12 @@ class DEDICATEDSERVERS_API ULocalPlayerSubsystem_DS : public ULocalPlayerSubsyst
 {
 	GENERATED_BODY()
 public:
+	//they're X_SignIn:
 	UPROPERTY()
-	FString LastUsername;
+	FString Username;
+	UPROPERTY()
+	FString Email;
+	
 
 	FTimerHandle TimerHandle;
 
@@ -29,13 +33,17 @@ public:
 	
 	//you may not see this anywhere to edit it lol, but anyway lol
 	UPROPERTY(EditAnywhere)
-	float RefreshInterval = 5.f; //current 75% of expiration time of Access,Id tokens = 3/4 hour
+	float RefreshInterval = 3200.f; //current 75% of expiration time of Access,Id tokens = 3/4 hour
 
 	void SetTimer_RefreshTokens();
-	void SetAuthenticationResultAndPortalManager(const FAuthenticationResult& InAuthenticationResult, const TScriptInterface<IPortalInterface>& InPortalInterface, const FString& InLastUsername);
+	void CacheDataToSubsystem(const FAuthenticationResult& InAuthenticationResult, const TScriptInterface<IPortalInterface>& InPortalInterface, const FString& InUsername, const
+	                          FString& InEmail);
 	
 	UFUNCTION()
 	void OnRefreshTokensRequestSucceed(const FString& InUsername, const FAuthenticationResult& InAuthenticationResult);
+	UFUNCTION()
+	void OnSignOutRequestSucceed();
+
 protected:
 	/*the trick to NOT let external classes to get data member of a class but can NOT modify it (even if the class itself can modify it)
 	+declare the data in protected/private session
@@ -46,4 +54,8 @@ protected:
 
 public:
 	const FString& GetAccessToken(){return AuthenticationResult.AccessToken; }
+
+	//this is optional PART4: direclty parse email+ from IdToken:
+	FString Base64UrlDecode(const FString& Input);
+	FString GetEmailFromIdToken(const FString& IdToken);
 };

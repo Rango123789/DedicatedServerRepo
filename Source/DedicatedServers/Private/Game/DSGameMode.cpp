@@ -1,7 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "Game/DS_GameMode.h"
+#include "Game/DSGameMode.h"
 #include "DedicatedServers/DedicatedServers.h"
 /*NOTE: if you include a file that is directly in Source/ModuleName for a file inside private/public folder
 , you need to start from "ModuleFolderName/[ModuleName].h"
@@ -18,13 +18,13 @@
 /*DEFINE_LOG_CATEGORY(GameServerLog);*/
 
 //don't know why AWS try to find the DefaultPawnClass, isn't already set in BP_GameMode?
-ADS_GameMode::ADS_GameMode() :
+ADSGameMode::ADSGameMode() :
     ProcessParams(nullptr)
 {
     /*UPDATE: this is bad practice, we directly set them in BP__GameMode, lol! Stephen verified it:
         // Set default pawn class to our Blueprinted character
             // the keyword **static** means that the variable PlayerPawnBPClass is only initialized once
-            //the first time the constructor ADS_GameMode::ADS_GameMode() is called — no matter how many times this constructor is later executed
+            //the first time the constructor ADSGameMode::ADSGameMode() is called — no matter how many times this constructor is later executed
             //Performance Optimization: Loading a class reference from disk (especially with ConstructorHelpers) can be expensive. Making it static ensures that this work is done only once.
             //Caching: The result of the class lookup is stored and reused on subsequent calls to the constructor, avoiding repeated class lookups.
 
@@ -36,11 +36,11 @@ ADS_GameMode::ADS_GameMode() :
                 DefaultPawnClass = PlayerPawnBPClass.Class;
             }
 
-            UE_LOG(GameServerLog, Log, TEXT("Initializing ADS_GameMode..."));
+            UE_LOG(GameServerLog, Log, TEXT("Initializing ADSGameMode..."));
     */
 }
 
-void ADS_GameMode::BeginPlay()
+void ADSGameMode::BeginPlay()
 {
     Super::BeginPlay();
 
@@ -52,7 +52,7 @@ void ADS_GameMode::BeginPlay()
 #endif
 }
 
-void ADS_GameMode::InitGameLift()
+void ADSGameMode::InitGameLift()
 {
 #if WITH_GAMELIFT
   
@@ -64,7 +64,14 @@ void ADS_GameMode::InitGameLift()
     FServerParameters ServerParams; 
 
 
-// default we default back to "old" code, so there wont be any "-glAnywhereFleet" any more to trying to check on lol!
+/*default we default back to "old" code, so there wont be any "-glAnywhereFleet" any more to trying to check on lol!
+ this is when we run ServerGame.exe as Anywhere fleet's compute:
+    "path\to\FPSTemplateServer.exe" -log
+    -authtoken=a810484a-c6d9-4c8a-90c3-9a4bb445c671
+    -fleetid=fleet-c555d413-fefb-4f3b-9f8c-c5f32b24de5a
+    -hostid=DesktopPC7   //so HostId here is just "Compute-name", not exactly IpAddress of the machine run the FPSTemplateServer.exe (however when we register the compute, we did enter --ip-address, hence they're associated and can represent for each other!)
+    -websocketurl=wss://us-east-2.api.amazongamelift.com
+    -port=7777*/
 //    if (bIsAnywhere)    
 //    {
         UE_LOG(GameServerLog, Log, TEXT("Configuring server parameters for Anywhere..."));
@@ -204,7 +211,7 @@ void ADS_GameMode::InitGameLift()
 }   
 
 /*Need a test to prove it:
-void ADS_GameMode::InitGameLift_Practice()
+void ADSGameMode::InitGameLift_Practice()
 {
 
 //stage1: load the "GameLiftServerSDK" module from Plugins/..../"GameLiftServerSDK", store it into a pointer of its module-representative type 
@@ -323,7 +330,7 @@ void ADS_GameMode::InitGameLift_Practice()
  */
 
 /*BACKUP before default back to old versio
-void ADS_GameMode::InitGameLift()
+void ADSGameMode::InitGameLift()
 {
 #if WITH_GAMELIFT
   

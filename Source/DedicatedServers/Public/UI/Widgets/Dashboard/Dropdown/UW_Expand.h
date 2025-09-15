@@ -29,11 +29,15 @@ public:
 
 	UPROPERTY(meta =(BindWidget))
 	TObjectPtr<UTextBlock> TextBlock_ButtonText;
+	UPROPERTY(meta =(BindWidget))
+	TObjectPtr<UTextBlock> 	TextBlock_Email;
 	
 	UPROPERTY(EditAnywhere)
 	FSlateColor Color_Hover;
 	UPROPERTY(EditAnywhere)
 	FSlateColor Color_Unhover;
+
+
 protected:
 	virtual void NativeConstruct() override;   //like BeginPLay in UActorComponent and AActor::BeginPlaye
 	virtual void NativePreConstruct() override; //like construction script in normal BP_Something

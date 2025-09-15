@@ -81,3 +81,16 @@ void UUW_Dropdown::Collapse()
 	WidgetSwitcher->SetActiveWidget(WBP_Collapse);
 	Image_DropdownIcon->SetBrush(Brush_Collapse);
 }
+
+ULocalPlayerSubsystem_DS* UUW_Dropdown::GetLocalPlayerSubsystem_DS() const
+{
+	//get FirstLocalPlayer
+	if (GetWorld() == nullptr) return nullptr;
+	
+ 	ULocalPlayer* FirstLocalPlayer = GetWorld()->GetFirstLocalPlayerFromController(); //or GEngine->GetFirstGamePlayer(GetWorld());
+	if (IsValid(FirstLocalPlayer))
+	{
+		return FirstLocalPlayer->GetSubsystem<ULocalPlayerSubsystem_DS>();	
+	}
+	return nullptr;;
+}

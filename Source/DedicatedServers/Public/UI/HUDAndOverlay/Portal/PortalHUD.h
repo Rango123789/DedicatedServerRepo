@@ -18,7 +18,8 @@ class DEDICATEDSERVERS_API APortalHUD : public AHUD
 
 public:
 	void PostSignIn();
-	
+	void PostSignOut();
+
 protected:
 	virtual void BeginPlay() override;
 	

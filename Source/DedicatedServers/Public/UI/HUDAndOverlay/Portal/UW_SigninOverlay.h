@@ -65,9 +65,6 @@ protected:
 	TSubclassOf<URequestManager_Portal> RequestManager_GameSessions_Class;
 	UPROPERTY()
 	TObjectPtr<URequestManager_GameSessions> RequestManager_GameSessions;
-*/
-
-/*To WBP_NewOverlay soon	
 //this one current one WBP_sub of WBP_SignInOverlay lol, but LATER supposedly it will only be dynamically spawned when we pass the log-in process: you're almost right! it will be in WBP_NewOverlay!
 	UPROPERTY( meta = (BindWidget) )
 	TObjectPtr<UUW_JoinGame> WBP_JoinGame;

@@ -7,6 +7,7 @@
 #include "UObject/Object.h"
 #include "RequestManager.generated.h"
 
+class ULocalPlayerSubsystem_DS;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FStatusMessageDelegate, const FString&, StatusMessage, bool,
                                              bResetWidgetButtons);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FRequestSucceedDelegate);
@@ -41,4 +42,6 @@ public:
 	//this is from PlayerState::GetUniqueId(), not exactly "PlayerId" input from PlayerSession that can be anything you want (arbitrary but better off unique), stephen name it "GetUqniuePlayerId", but anyway:
 	//this is just a placeholder function, we will use "PlayerId"=UserName when a player login instead :D  
 	FString GetUniqueIdFromPlayerState();
+	
+	ULocalPlayerSubsystem_DS* GetLocalPlayerSubsystem_DS() const;
 };

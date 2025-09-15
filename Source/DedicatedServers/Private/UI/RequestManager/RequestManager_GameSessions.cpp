@@ -8,6 +8,7 @@
 #include "GameplayTags/DedicatedServersTags.h"
 #include "Interfaces/IHttpResponse.h"
 #include "Kismet/GameplayStatics.h"
+#include "Player/LocalPlayerSubsystem_DS.h"
 #include "UI/RequestManager/HTTPRequestTypes.h"
 
 //STAGE1: Find if any ACTIVE session exists, otherwise create a new on
@@ -26,10 +27,16 @@ void URequestManager_GameSessions::SendRequest_FindAndJoinGameSession()
 	HttpRequest->SetURL(InvokeURL);
 	HttpRequest->SetVerb("POST");
 	HttpRequest->SetHeader("Content-Type", "application/json");
+
+	//step3B: adapt to satisfy Authorizer::{FromCognito::UserPool_i && HeaderToTakeSource="authorization"  + "custom_scope"}
+	if(GetLocalPlayerSubsystem_DS())
+	{
+		//"Authorization" is the HeaderNameContainTokenSource we specified from APIGateway::Authorizer to be set for ::method_i, you can name it differently if you want (but must match each other)
+		HttpRequest->SetHeader("Authorization", GetLocalPlayerSubsystem_DS()->GetAccessToken());	
+	}
 	
 	//Step4: actually send it (Unreal API know how to access our OS system or it has browser/framework itself to do it at higher level so don't worry):
 	HttpRequest->ProcessRequest();
-
 	GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Red, FString("FindOrCreateGameSession request sent"), false);
 }
 

@@ -3,15 +3,14 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Game/DS_GameMode.h"
-#include "GameFramework/GameMode.h"
+#include "Game/MatchGameMode.h"
 #include "ShooterGameModeBase.generated.h"
 
 /**
  * 
  */
 UCLASS()
-class FPSTEMPLATE_API AShooterGameModeBase : public ADS_GameMode
+class FPSTEMPLATE_API AShooterGameModeBase : public AMatchGameMode /* instead of the heavier child ADSGameMode (GameLift) : ADSGameModeBase : */
 {
 	GENERATED_BODY()
 public:

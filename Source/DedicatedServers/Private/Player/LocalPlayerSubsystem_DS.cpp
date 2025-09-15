@@ -4,16 +4,21 @@
 
 //this function trigger after the first broadcast, so don't worry! 
 //next time it won't trigger this any more  as i replace "SignInRequestSucceed.broadcast" already (WBP_Overlay::callback won't be called and won't trigger this any more), only trigger the NEW delegate callback!
-void ULocalPlayerSubsystem_DS::SetAuthenticationResultAndPortalManager(
+void ULocalPlayerSubsystem_DS::CacheDataToSubsystem(
 	const FAuthenticationResult& InAuthenticationResult,
-	const TScriptInterface<IPortalInterface>& InPortalInterface, const FString& InLastUsername)
+	const TScriptInterface<IPortalInterface>& InPortalInterface, const FString& InUsername, const FString& InEmail)
 {
 	if (IsValid(InPortalInterface.GetObject()) == false) return;
 	AuthenticationResult = InAuthenticationResult;
 		//RequestManager_Portal = InPortalInterface;
 	PortalInterface = InPortalInterface;
-	LastUsername = InLastUsername;
+	Username = InUsername;
+	Email = InEmail;
 
+	//testing PART4: directly parse Email from IdToken - WORK LIKE A CHARM!
+	FString UserEmail = GetEmailFromIdToken(InAuthenticationResult.IdToken);
+	GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Red, FString("Parse email from IDToken PART4: ") + UserEmail, false);
+	
 	//first time: we actively call it
 	SetTimer_RefreshTokens();
 
@@ -23,7 +28,7 @@ void ULocalPlayerSubsystem_DS::SetAuthenticationResultAndPortalManager(
 
 void ULocalPlayerSubsystem_DS::OnRefreshTokensRequestSucceed(const FString& InUsername, const FAuthenticationResult& InAuthenticationResult)
 {
-	LastUsername = InUsername; //no need, it shouldn't be changed at all
+	Username = InUsername; //no need, it shouldn't be changed at all
 	
 	//better off... rather than AuthenticationResult = InAuthenticationResult; because RefreshToken+ isn't given in Refresh mode 
 	AuthenticationResult.AccessToken = InAuthenticationResult.AccessToken;
@@ -43,8 +48,60 @@ void ULocalPlayerSubsystem_DS::SetTimer_RefreshTokens()
 		//you still need to recheck it, because is only executed after a delay lol :D :D
 		if (IsValid(PortalInterface.GetObject()))
 		{
-			PortalInterface->SendRequest_RefreshTokens( LastUsername, AuthenticationResult.RefreshToken); //refresh, not access lol		
+			PortalInterface->SendRequest_RefreshTokens( Username, AuthenticationResult.RefreshToken); //refresh, not access lol		
 		}
 	});
 	GetWorld()->GetTimerManager().SetTimer(TimerHandle, RefreshTokensDelegate, RefreshInterval, false);
+}
+
+FString ULocalPlayerSubsystem_DS::Base64UrlDecode(const FString& Input)
+{
+	FString Fixed = Input;
+    Fixed.ReplaceInline(TEXT("-"), TEXT("+"));
+    Fixed.ReplaceInline(TEXT("_"), TEXT("/"));
+
+    // Pad with '=' if needed
+    while (Fixed.Len() % 4 != 0)
+    {
+        Fixed.AppendChar('=');
+    }
+
+    TArray<uint8> Bytes;
+    FBase64::Decode(Fixed, Bytes);
+
+    return FString(UTF8_TO_TCHAR(reinterpret_cast<const char*>(Bytes.GetData())));
+}
+
+FString ULocalPlayerSubsystem_DS::GetEmailFromIdToken(const FString& IdToken)
+{
+	TArray<FString> Parts;
+    IdToken.ParseIntoArray(Parts, TEXT("."));
+    if (Parts.Num() != 3)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("Invalid JWT format"));
+        return FString();
+    }
+
+    FString PayloadJson = Base64UrlDecode(Parts[1]);
+
+    // Parse JSON
+    TSharedPtr<FJsonObject> JsonObject;
+    TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(PayloadJson);
+
+    if (FJsonSerializer::Deserialize(Reader, JsonObject) && JsonObject.IsValid())
+    {
+        FString OutEmail;
+        if (JsonObject->TryGetStringField(TEXT("email"), OutEmail))
+        {
+            return OutEmail;
+        }
+    }
+
+    return FString();
+}
+
+//NOT use any more.
+void ULocalPlayerSubsystem_DS::OnSignOutRequestSucceed()
+{
+	
 }

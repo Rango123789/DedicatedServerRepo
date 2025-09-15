@@ -14,12 +14,21 @@ void UUW_Expand::NativeConstruct()
 
 	check(RequestManager_Portal_Class);
 	RequestManager_Portal = NewObject<URequestManager_Portal>(this, RequestManager_Portal_Class);
+
+	//help to bind WBP_Expand::PortalManager::SignOutSucceedDelegate to DSSystem::Callback - this is where we call PortalHUD::PostSignOut (safest place becuase this WBP_Expand will die with WBP_Dashboard lol!). UPDATE: this chain is USED any more!
+	RequestManager_Portal->SignOutRequestSucceedDelegate.AddDynamic(GetLocalPlayerSubsystem_DS(), &ULocalPlayerSubsystem_DS::OnSignOutRequestSucceed);
  
 	Button_SignOut->OnClicked.AddDynamic(this, &ThisClass::OnButtonClicked);
 	Button_SignOut->OnHovered.AddDynamic(this, &ThisClass::OnButtonHovered);
 	Button_SignOut->OnUnhovered.AddDynamic(this, &ThisClass::OnButtonUnhovered);
-}
 
+	if (GetLocalPlayerSubsystem_DS())
+	{
+		TextBlock_Email->SetText(FText::FromString(GetLocalPlayerSubsystem_DS()->Email));
+	}
+
+
+}
 //so that no need to go to each mode of button and do it!
 void UUW_Expand::NativePreConstruct()
 {

@@ -3,22 +3,24 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "DSGameModeBase.h"
 #include "GameFramework/GameMode.h"
-#include "DS_GameMode.generated.h"
+#include "DSGameMode.generated.h"
 
 struct FProcessParameters;
 
 /*DECLARE_LOG_CATEGORY_EXTERN(GameServerLog, Log, All);*/
 
 /**
- * 
+ * at the same time we know that, from the main module, AShooterGameMode :  ADSGameMode : public ADSGameModeBase : AGameMode
+ * this is rather crazy lol.
  */
 UCLASS()
-class DEDICATEDSERVERS_API ADS_GameMode : public AGameMode
+class DEDICATEDSERVERS_API ADSGameMode : public ADSGameModeBase //now inherit from this instead
 {
 	GENERATED_BODY()
 public:
-	ADS_GameMode();
+	ADSGameMode();
 	
 protected:
 	virtual void BeginPlay() override;

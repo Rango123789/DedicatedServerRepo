@@ -149,7 +149,7 @@ void UUW_SigninOverlay::OnSignInRequestSucceed()
 	ULocalPlayerSubsystem_DS* LocalPlayerSubsystem_DS = GetLocalPlayerSubsystem_DS();
 	if (IsValid(LocalPlayerSubsystem_DS) == false) return;
 	
-	LocalPlayerSubsystem_DS->SetAuthenticationResultAndPortalManager( RequestManager_Portal->LastDSSignIn.AuthenticationResult, RequestManager_Portal, RequestManager_Portal->Username_SignIn);
+	LocalPlayerSubsystem_DS->CacheDataToSubsystem( RequestManager_Portal->LastDSSignIn.AuthenticationResult, RequestManager_Portal, RequestManager_Portal->Username_SignIn, RequestManager_Portal->Email_SignIn);
 
 	//this solved puzzle: how to bind RM_Portal::delegate without needing to cast to it lol
 	RequestManager_Portal->RefreshTokensRequestSucceedDelegate.AddDynamic(LocalPlayerSubsystem_DS, &ULocalPlayerSubsystem_DS::OnRefreshTokensRequestSucceed);

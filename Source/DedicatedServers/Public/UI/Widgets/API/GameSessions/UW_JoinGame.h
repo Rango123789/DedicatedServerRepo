@@ -16,6 +16,7 @@ class DEDICATEDSERVERS_API UUW_JoinGame : public UUserWidget
 {
 	GENERATED_BODY()
 public:
+	
 	UPROPERTY( meta = (BindWidget) )
 	TObjectPtr<UButton> Button_JoinGame;
 	

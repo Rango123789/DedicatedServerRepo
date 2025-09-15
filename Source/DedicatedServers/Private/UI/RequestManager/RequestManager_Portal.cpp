@@ -317,6 +317,8 @@ void URequestManager_Portal::OnResponse_SignIn(TSharedPtr<IHttpRequest> HttpRequ
 	}
 
 	LastDSSignIn = DSSignIn;
+	Email_SignIn = LastDSSignIn.Email; //we just know email (unlike Username - we know and assume it will succeed, and we must store it up there  EITHER because the FDSSignIn response we get won't have Username (before UPDATE CognitoSignIn lambda)here or with Username but in lowercase (after UPDATE)- not wanted)
+	
 //step4: [possible step] send another request if needed.
 
 //step5: [possible step] broadcast all relevant delegates (enable back the button and so on). 
@@ -325,6 +327,7 @@ void URequestManager_Portal::OnResponse_SignIn(TSharedPtr<IHttpRequest> HttpRequ
 	SignInRequestSucceedDelegate.Broadcast(); //this chain will get all job done (saving tokens to DSSubsystem at least)
 
 //step6: call PortalHUD::OnSignIn (/PostSignIn) to destroy WBP_SignInOverlay (potentially destroy this PortalManager too - but who know let's see)
+	//OPTIONALLY you can do these in "SignInRequestSucceedDelegate" chain, bind some callback, say from DSSystem::callback to that delegate at wherever appropriate
 	if (APlayerController* FirstLocalPC = GEngine->GetFirstLocalPlayerController(GetWorld()))
 	{
 		//if you do "APortalHUD : IPortalInterface", then from here you would
@@ -427,6 +430,8 @@ void URequestManager_Portal::OnResponse_RefreshTokens(TSharedPtr<IHttpRequest> H
 	GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Red, FString("RefreshTokens successfully!"), false);	
 }
 
+
+//careful: CURRENTLY a totally separate instead of PortalManager from WBP_Expand trigger these functions (because the SignOut button is from there so stephen create new instead from there)
 void URequestManager_Portal::SendRequest_SignOut(const FString& AccessToken)
 {
 	//Step1: Create an EMPTY request:
@@ -483,8 +488,17 @@ void URequestManager_Portal::OnResponse_SignOut(TSharedPtr<IHttpRequest> HttpReq
 //step4: [possible step] send another request if needed.
 
 //step5: [possible step] broadcast all relevant delegates (enable back the button and so on). 
-	SignOutRequestSucceedDelegate.Broadcast(); //this chain will get all job done (saving tokens to DSSubsystem at least)
-
+	SignOutRequestSucceedDelegate.Broadcast();
+	
+//step6: call PortalHUD::OnSignIn (/PostSignIn) to destroy WBP_SignInOverlay (potentially destroy this PortalManager too - but who know let's see)/
+	//OPTIONALLY you can do these in "SignOutRequestSucceedDelegate" chain, bind some callback, say from DSSystem::callback to that delegate at wherever appropriate
+	if (APlayerController* FirstLocalPC = GEngine->GetFirstLocalPlayerController(GetWorld()))
+	{
+		//if you do "APortalHUD : IPortalInterface", then from here you would
+		APortalHUD* PortalHUD = FirstLocalPC->GetHUD<APortalHUD>();
+		if(PortalHUD) PortalHUD->PostSignOut();
+	}
+	
 	GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Red, FString("SignOut successfully!"), false);
 }
 

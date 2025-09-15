@@ -37,3 +37,20 @@ void APortalHUD::PostSignIn()
 		UW_DashboardOverlay->AddToViewport();
 	}
 }
+
+//back to WBP_SignInOverlay
+void APortalHUD::PostSignOut()
+{
+	//I want you to swap the role of UW_SigninOverlay and UW_DashboardOverlay here using PostSignIn as reference:
+		// remove the dashboard overlay from viewport:
+	if (IsValid(UW_DashboardOverlay)) UW_DashboardOverlay->RemoveFromParent();
+	
+	// add the sign-in overlay:
+	if (IsValid(PlayerOwner) && UW_SigninOverlay_Class)
+	{
+		UW_SigninOverlay = CreateWidget<UUW_SigninOverlay>(PlayerOwner, UW_SigninOverlay_Class);
+		UW_SigninOverlay->AddToViewport();
+	}
+}
+
+

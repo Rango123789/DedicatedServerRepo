@@ -6,6 +6,7 @@
 #include "Blueprint/UserWidget.h"
 #include "UW_Dropdown.generated.h"
 
+class ULocalPlayerSubsystem_DS;
 class UTextBlock;
 class UImage;
 class UButton;
@@ -61,4 +62,6 @@ protected:
 	
 	void Expand();
 	void Collapse();
+
+	ULocalPlayerSubsystem_DS* GetLocalPlayerSubsystem_DS() const;
 };

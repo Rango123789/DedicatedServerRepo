@@ -6,6 +6,7 @@
 #include "Blueprint/UserWidget.h"
 #include "UW_DashboardOverlay.generated.h"
 
+class UUW_Dropdown;
 class UButton;
 class UUW_LeaderboardPage;
 class UUW_CareerPage;
@@ -31,6 +32,10 @@ public:
 	TObjectPtr<UUW_CareerPage> WBP_CareerPage;
 	UPROPERTY( meta = (BindWidget) )
 	TObjectPtr<UUW_LeaderboardPage> WBP_LeaderboardPage;
+
+	//we don't need this, we don't even need to access WBP_Dropdown from C++ from this HOSTING class or anywhere else
+	UPROPERTY( meta = (BindWidget) )
+	TObjectPtr<UUW_Dropdown> WBP_Dropdown; // WBP_Dropdown : UUW_DropdownAccount : UUW_Dropdown = any child of UUW_Dropdown will work
 	
 	//for debugging purposes:
 	UPROPERTY( meta = (BindWidget) )
