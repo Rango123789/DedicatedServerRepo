@@ -18,6 +18,7 @@ public:
 protected:
 	/** Called after a successful login.  This is the first place it is safe to call replicated functions on the PlayerController. */
 	virtual void PostLogin(APlayerController* NewPlayer) override;
+	virtual void InitSeamlessTravelPlayer(AController* NewController) override;
 	
 	//to be used in place of GM::MatchState (yes and no lol)
 	UPROPERTY(BlueprintReadOnly)
@@ -30,9 +31,15 @@ protected:
 	FCountdownTimerWrapper TimerWrapper_Match;
 	UPROPERTY(EditAnywhere)
 	FCountdownTimerWrapper TimerWrapper_PostMatch;
-
 	virtual void OnCountDownTimerFinished(const ETimerType& InTimerType) override;
 	
+	//for testing purpose
+	UPROPERTY(EditAnywhere)
+	bool bOverrideInitSeamlessTravelPlayer = false;
+
+	//testing:
+	UPROPERTY(EditAnywhere)
+	bool bCallDisableInputAtStartInGameMode = false;
 public:
 	
 };

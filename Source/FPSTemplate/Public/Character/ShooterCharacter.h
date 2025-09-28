@@ -54,6 +54,11 @@ public:
 
 	void TurnInPlace(float DeltaTime);
 
+	/*AActor*/ 
+		//my custom one:
+	virtual void DisableInput(class APlayerController* PlayerController) override;
+	/*AActor*/
+
 	/** PlayerInterface */
 	virtual FName GetWeaponAttachPoint_Implementation(const FGameplayTag& WeaponType) const override;
 	virtual USkeletalMeshComponent* GetSpecifcPawnMesh_Implementation(bool WantFirstPerson) const override;

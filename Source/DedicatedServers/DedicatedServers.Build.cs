@@ -16,7 +16,8 @@ public class DedicatedServers : ModuleRules
 		        "GameplayTags",
 				"HTTP", //this is the module to use FHttpModule::Get() and so on
 				"Json",
-				"JsonUtilities" //I don't see anything being used in this module so far
+				"JsonUtilities", //I don't see anything being used in this module so far
+				"NetCore"
 	        });
 
 		//PrivateDependencyModuleNames.AddRange(new string[] { "GameplayTags", "Slate", "SlateCore" });

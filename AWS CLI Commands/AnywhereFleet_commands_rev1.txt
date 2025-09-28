@@ -10,17 +10,17 @@ aws sso login --profile rango-profile  (no need profile if you did the "set ..."
 = but if it does change locally ( say .6 to .7) you can change “--compute-name DesktopPC”  into “DesktopPC2” with .[new] lol (no need to create new custom location)
 
 ***COPY***
-aws gamelift register-compute --fleet-id fleet-c555d413-fefb-4f3b-9f8c-c5f32b24de5a --compute-name DesktopPC7 --ip-address 192.168.1.5 --location custom-home-desktop
+aws gamelift register-compute --fleet-id fleet-c555d413-fefb-4f3b-9f8c-c5f32b24de5a --compute-name DesktopPC10 --ip-address 192.168.1.7 --location custom-home-desktop
 **********
 
-C:\Users\hauha>aws gamelift register-compute --fleet-id fleet-c555d413-fefb-4f3b-9f8c-c5f32b24de5a --compute-name DesktopPC3 --ip-address 192.168.1.5 --location custom-home-desktop
+C:\Users\hauha>aws gamelift register-compute --fleet-id fleet-c555d413-fefb-4f3b-9f8c-c5f32b24de5a --compute-name DesktopPC3 --ip-address 192.168.1.7 --location custom-home-desktop
 {
     "Compute": {
         "FleetId": "fleet-c555d413-fefb-4f3b-9f8c-c5f32b24de5a",
         "FleetArn": "arn:aws:gamelift:us-east-2:761428468536:fleet/fleet-c555d413-fefb-4f3b-9f8c-c5f32b24de5a",
         "ComputeName": "DesktopPC",
         "ComputeArn": "arn:aws:gamelift:us-east-2:761428468536:compute/DesktopPC",
-        "IpAddress": "192.168.1.5",
+        "IpAddress": "192.168.1.7",
         "ComputeStatus": "Active",
         "Location": "custom-home-desktop",
         "CreationTime": "2025-08-06T13:19:11.038000+07:00",
@@ -36,11 +36,11 @@ aws gamelift deregister-compute ^
 = well i didn't fix lol
 
 2. GET Auth Token for your compute/PC:.
-aws gamelift get-compute-auth-token --fleet-id fleet-c555d413-fefb-4f3b-9f8c-c5f32b24de5a --compute-name DesktopPC7
+aws gamelift get-compute-auth-token --fleet-id fleet-c555d413-fefb-4f3b-9f8c-c5f32b24de5a --compute-name DesktopPC10
 
 
 3. run the game (change AuthToken and to DesktopPC_i):
-"C:\Users\hauha\OneDrive\Desktop\FPSTemplate\BUILD\Build_3\WindowsServer\FPSTemplate\Binaries\Win64\FPSTemplateServer.exe" -log -authtoken=a810484a-c6d9-4c8a-90c3-9a4bb445c671 -fleetid=fleet-c555d413-fefb-4f3b-9f8c-c5f32b24de5a -hostid=DesktopPC7 -websocketurl=wss://us-east-2.api.amazongamelift.com -port=7777
+"C:\Users\hauha\OneDrive\Desktop\FPSTemplate\BUILD\Build_5\WindowsServer\FPSTemplate\Binaries\Win64\FPSTemplateServer.exe" -log -authtoken=8830abe6-f927-4ec4-998a-0eccad871bed -fleetid=fleet-c555d413-fefb-4f3b-9f8c-c5f32b24de5a -hostid=DesktopPC10 -websocketurl=wss://us-east-2.api.amazongamelift.com -port=7777
 
 @@note: HostId here is "compute-name" (as you register-compute), not the "IPAddress" (when you register a compute, you did enter IPAddress along already, so it is recored onto the compute name itself)
 ; if you enter IPAddress you get error after you run the GameServer.exe
@@ -58,7 +58,7 @@ aws gamelift create-game-session --fleet-id fleet-c555d413-fefb-4f3b-9f8c-c5f32b
         "MaximumPlayerSessionCount": 4,
         "Status": "ACTIVATING",
         "GameProperties": [],
-        "IpAddress": "192.168.1.5",
+        "IpAddress": "192.168.1.7",
         "Port": 7777,
         "PlayerSessionCreationPolicy": "ACCEPT_ALL",
         "Location": "custom-home-desktop"
@@ -74,7 +74,7 @@ aws gamelift create-player-session --game-session-id arn:aws:gamelift:us-east-2:
 6. upload-build
 =need only sso login and then upload (no need to run any thing)
 
-aws gamelift upload-build --name FPSTemplateServerBuild --build-version 1.0.0 --build-root "C:\Users\hauha\OneDrive\Desktop\FPSTemplate\BUILD\Build_3\WindowsServer" --operating-system WINDOWS_2016 --server-sdk-version 5.3.0 --region us-east-2
+aws gamelift upload-build --name FPSTemplateServerBuild --build-version 1.0.0 --build-root "C:\Users\hauha\OneDrive\Desktop\FPSTemplate\BUILD\Build_5\WindowsServer" --operating-system WINDOWS_2016 --server-sdk-version 5.3.0 --region us-east-2
 
 -->the packed folder name is WindowsServer now make sense, as there is Window Server 2026 to run dedicated server (better performance than windows)
 

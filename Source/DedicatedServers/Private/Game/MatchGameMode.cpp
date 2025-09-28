@@ -3,6 +3,8 @@
 
 #include "Game/MatchGameMode.h"
 
+#include "Kismet/GameplayStatics.h"
+
 AMatchGameMode::AMatchGameMode()
 {
 	//applied when call ServerTravel from this current level (having this gamemode instance) to other levels (regardless OtherGM's b__ value)
@@ -20,15 +22,28 @@ void AMatchGameMode::PostLogin(APlayerController* NewPlayer)
 {
 	Super::PostLogin(NewPlayer);
 
-	//this Hosting function trigger whenever a player join/connect to the current map (having this gamemode), so no point to StartPostMatch timer again when it is already started (i.e no longer in EMatchStatus::WaitingForPlayers)
+	/*//this Hosting function trigger whenever a player join/connect to the current map (having this gamemode), so no point to StartPostMatch timer again when it is already started (i.e no longer in EMatchStatus::WaitingForPlayers)
 	//theoretically we will start the counting down for PreMatch status when enough players (say at least 2+)
 	//however we're current in Game level already, it is Lobby level's responsibility (that we didn't create yet)
 	//this PostLogin will still trigger many times (trigger one per player join lol)
-	//but now we enforce this condition (and change the MatchStatus inside it) so only the FIRST player join can be able to trigger this function and get passed the if check (DS don't have any Player for themself, so the FIRST/randdom-earlier client join will trigger and get passed the if check, next clients - which only just right after the first - will still trigger the hosting funciton but can't pass the if check any more :) )
+	//but now we enforce this condition (and change the MatchStatus inside it) so only the FIRST player join can be able to trigger this function and get passed the if check (DS don't have any Player for themself, so the FIRST/randdom-earlier client join will trigger and get passed the if check, next clients - which only just right after the first - will still trigger the hosting funciton but can't pass the if check any more :) )*/
 	if (MatchStatus == EMatchStatus::WaitingForPlayers)
 	{
 		MatchStatus = EMatchStatus::PreMatch;
 		StartCountdownTimer(TimerWrapper_PreMatch);
+		if (bCallDisableInputAtStartInGameMode) SetClientInputEnabled(false);
+	}
+}
+
+void AMatchGameMode::InitSeamlessTravelPlayer(AController* NewController)
+{
+	Super::InitSeamlessTravelPlayer(NewController);
+	if (bOverrideInitSeamlessTravelPlayer == false) return;
+	if (MatchStatus == EMatchStatus::WaitingForPlayers)
+	{
+		MatchStatus = EMatchStatus::PreMatch;
+		StartCountdownTimer(TimerWrapper_PreMatch);
+		if (bCallDisableInputAtStartInGameMode) SetClientInputEnabled(false);
 	}
 }
 
@@ -45,22 +60,43 @@ void AMatchGameMode::OnCountDownTimerFinished(const ETimerType& InTimerType)
 	- so checking InTimerType == ETimerType::PreMatch is clearly redudant*/
 	if (MatchStatus == EMatchStatus::PreMatch && InTimerType == ETimerType::PreMatch)
 	{
+		//STEPHEN comment out in parent's StartCountdownTimer and move it here, but i think it is still in the chain lol
+		StopCountdownTimer(TimerWrapper_PreMatch);
+		
 		MatchStatus = EMatchStatus::Match;
 		StartCountdownTimer(TimerWrapper_Match);
+
+		SetClientInputEnabled(true);
 	}
 	
 	if (MatchStatus == EMatchStatus::Match && InTimerType == ETimerType::Match)
 	{
+		//STEPHEN comment out in parent's StartCountdownTimer and move it here, but i think it is still in the chain lol
+		StopCountdownTimer(TimerWrapper_Match);
+		
 		MatchStatus = EMatchStatus::PostMatch;
 		StartCountdownTimer(TimerWrapper_PostMatch);
+
+		SetClientInputEnabled(false); 
 	}
 	
 	if (MatchStatus == EMatchStatus::PostMatch && InTimerType == ETimerType::PostMatch)
 	{
+		//STEPHEN comment out in parent's StartCountdownTimer and move it here, but i think it is still in the chain lol
+		StopCountdownTimer(TimerWrapper_PostMatch);
+		
 		MatchStatus = EMatchStatus::SeamlessTravelBackToLobby;
 
 		//no TimerWrapper to call next, we go back to the Lobby level, setting State now kind of lame because the GM will de destroyed as we travel any way! but it can't hurt right lol.
-			//TODO: OpenLevel(LobbyLevel):
+			//Or Just need to call the helper from parent lol
+		if (GIsEditor)
+		{
+			UGameplayStatics::OpenLevelBySoftObjectPtr(this, LobbyMap, true);
+		}
+		else
+		{
+			GetWorld()->ServerTravel(LobbyMap.GetAssetName());
+		}
 	}
 	
 }

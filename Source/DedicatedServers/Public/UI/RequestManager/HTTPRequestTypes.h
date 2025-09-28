@@ -357,5 +357,67 @@ struct FDSSignUp
 	void Dump() const;
 };
 
+/*
++[WARNING] Stephen say if we use FJsonConverter/like to convert FStruct to FJsonObject it will make the first letter of the member names become "lowercase" during converting process
+
++but GPT said "no", it won't lol
+, so let's see
+
++but using FJsonObject::Helpers won't have such a thing lol
+, but for such complex JSONString or the structure is 'POTENTIALLY to be re-used
+, creating FMatchingStruct even for "HTTPRequest" is the preferred (or even recommended) choice
+= anyway you can always ask GPT to use FJsonObject::Helpers in such a complex case, not a problem any more :D 
+
++[IMPORTANT] those values are handled in FPSTemplate and you need only to access "whatever you need" (can skip some, some modified some, typically collectively, not just for single map, hence b__ --> int32, int32 --> int32 (lol) )
+*/
+USTRUCT()
+struct FMatchStats
+{
+	GENERATED_BODY()
+
+	//we skip OnStreak because it is local variables used to keep tracK of SequentialElims (but this is skipped also anyway), Only HighestStreak is kept:
+	UPROPERTY()
+	int32 ScoredElims = 0;
+	UPROPERTY()
+	int32 Defeats = 0;
+	UPROPERTY()
+	int32 Hits = 0;
+	UPROPERTY()
+	int32 Misses = 0;
+
+	UPROPERTY()
+	int32 HeadShotElims = 0;
+	UPROPERTY()
+	int32 HighestStreak = 0;
+	UPROPERTY()
+	int32 RevengeElims = 0;
+	UPROPERTY()
+	int32 DethroneElims = 0;
+	UPROPERTY()
+	int32 ShowStopperElims = 0;
+
+	/*in a single map bFirstBlood mean the player is the one being killed FIRST in the map (you way to much free time to track this lol).
+	And in this course, stephen want to keep track of it collectively across all matches into the DynamoDB, hence int32 is appropriate:*/
+	UPROPERTY()
+	int32 GotFirstBlood{};
+	
+	//instead of bWinner, the same logic here, we want to keep track of it collectively into the DynamoDB, not just for single map.
+	UPROPERTY()
+	int32 MatchWinner{};
+	UPROPERTY()
+	int32 MatchLooser{};
+};
+
+USTRUCT()
+struct FDSRecordMatchStats
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	FString Username;
+	
+	UPROPERTY()
+	FMatchStats MatchStats;
+};
 
 

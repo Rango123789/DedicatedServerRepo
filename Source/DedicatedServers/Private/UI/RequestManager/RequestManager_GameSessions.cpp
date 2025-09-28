@@ -193,7 +193,11 @@ void URequestManager_GameSessions::OnResponse_CreatePlayerSession(TSharedPtr<IHt
 	
 	//LevelName = IpAddress:Port (used in this source) or Path/to/level.umap (not used in this course)
 	FString LevelName = DSPlayerSession.IpAddress + ":" + FString::FromInt(DSPlayerSession.Port);
-	UGameplayStatics::OpenLevel(this, FName(*LevelName));
+
+	//make it ?"Username" or ?"PlayerId" both okay, as long as you search the same key in GM::PreLogin( , , Options)!
+	FString Options ="?PlayerSessionId=" + DSPlayerSession.PlayerSessionId +  "?Username=" + DSPlayerSession.PlayerId; //UPDATE
+	
+	UGameplayStatics::OpenLevel(this, FName(*LevelName), true, Options);
 	
 }
 
@@ -203,8 +207,13 @@ void URequestManager_GameSessions::HandleCreatePlayerSession(const FString& Game
 	if (Status == "ACTIVE")
 	{
 		StatusMessageDelegate.Broadcast("Find ACTIVE GameSession, Trying to create PlayerSession...", false);
-		
-		SendRequest_CreatePlayerSession(GameSessionId , GetUniqueIdFromPlayerState());
+
+		//Login is before Dashboard level hence at this time you should already have DSSystem::Username stored!
+		if (GetLocalPlayerSubsystem_DS())
+		{
+				//SendRequest_CreatePlayerSession(GameSessionId , GetUniqueIdFromPlayerState());
+			SendRequest_CreatePlayerSession(GameSessionId , GetLocalPlayerSubsystem_DS()->Username);	//UPDATE
+		}
 	}
 	/*it is ACTIVATING, then we have many possible option, but the best option after analyzation is to call "SendRequest_FindOrCreateGameSession" (start the whole chain again) but this time with the hope that you will "Find" the created GameSession that just turn to "ACTIVE" from "ACTIVATING". In case it "Find" other ACTIVE GameSession that is not created by you, then it is fine too :D :D. OPTIONALLY you can put it inside a timer if you want. Reason: sending request to AWS have DelayTime itself:
 	-PTION1: do it again, knowing that there the newly-created GameSession is activated soon 

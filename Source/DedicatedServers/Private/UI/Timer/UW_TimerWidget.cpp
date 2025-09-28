@@ -18,7 +18,7 @@ void UUW_TimerWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 	{
 	//let's our widget to have a chance to show the "MAX" time, by doing before subtracting :)
 		//OPTION1: showing RAW seconds lol
-		TextBlock_Timer->SetText(FText::FromString(FString::SanitizeFloat(InternalRemainingTime)));
+			//TextBlock_Timer->SetText(FText::FromString(FString::SanitizeFloat(InternalRemainingTime)));
 		//OPTION2: using our custom helper
 		TextBlock_Timer->SetText(FText::FromString(TimeSecondsToString(InternalRemainingTime)));
 		
@@ -38,8 +38,10 @@ void UUW_TimerWidget::NativeOnInitialized()
 
 	if (ADSPlayerController* DSPlayerController = Cast<ADSPlayerController>(GetOwningPlayer()))
 	{
+		DSPlayerController->OnTimerStateChangedDelegate_Start.AddDynamic(this, &ThisClass::OnTimerStart);
 		DSPlayerController->OnTimerStateChangedDelegate_Update.AddDynamic(this, &ThisClass::OnTimerUpdate);
 		DSPlayerController->OnTimerStateChangedDelegate_Finish.AddDynamic(this, &ThisClass::OnTimerFinish);
+		
 	}
 
 	if(bHiddenWhenInActive)
@@ -50,7 +52,22 @@ void UUW_TimerWidget::NativeOnInitialized()
 			//TextBlock_Timer->SetVisibility(ESlateVisibility::Hidden);
 		//OPTION3: this is worst, because it is still rendered with alpha=0. Crazy :D :D
 			//TextBlock_Timer->SetOpacity(0.f);
+		
+		//let's make sure it start off empty as well (if you don't in WBP_Child lol)
+		TextBlock_Timer->SetText(FText::FromString(""));	
 	}
+}
+
+void UUW_TimerWidget::OnTimerStart(ETimerType InTimerType, float RemainingTime)
+{
+    if (TimerType != InTimerType) return; 
+    
+	bIsActive = true;
+	InternalRemainingTime = RemainingTime; //stephen didn't have this.
+		
+	SetVisibility(ESlateVisibility::Visible); //set it to visible no matter what
+
+	K2_OnTimerStart(InTimerType, RemainingTime);
 }
 
 void UUW_TimerWidget::OnTimerUpdate(ETimerType InTimerType, float RemainingTime)
@@ -58,12 +75,16 @@ void UUW_TimerWidget::OnTimerUpdate(ETimerType InTimerType, float RemainingTime)
     if (TimerType != InTimerType) return; 
 
 	//the first one sure get "MAX" value? well no we did "RTT/2" right from [PC::delegate.broadcast] pineline, so you would never get the "MAX" lol, and this make sense, unless you allow CountdownTime+=RTT/2 for the server machine at first place lol :D :D - it looks like stephen would like to do it soon :D :D
+	//UPDATE now you can remove these code since you have "OnTimerStart" lol!
 	if (bIsActive == false) //more like bDoOnce...
 	{
 		bIsActive = true;
 		InternalRemainingTime = RemainingTime; //stephen didn't have this.
 		
 		SetVisibility(ESlateVisibility::Visible); //set it to visible no matter what
+
+		//Shocking news: you can in fact directly call here and then skip to edit the whole chain [GM->PC->UW_TimerWidget ]lol! = but anyway I just did it lol. very stupid of me lol:
+			//K2_OnTimerStart(InTimerType, RemainingTime);
 	}
 
 	//I name it K2_HostingFunctionName (OnTimerUpdate) , not K2_SubFactorizedFunctionName (will be TimerUpdate - if you factorize)

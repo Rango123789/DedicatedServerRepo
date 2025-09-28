@@ -8,6 +8,19 @@ ADSPlayerController::ADSPlayerController()
 	
 }
 
+
+void ADSPlayerController::BeginPlay()
+{
+	Super::BeginPlay();
+
+	//this only Disable Input for PC on its own, did NOT help to disable it for its controlled pawn
+	DisableInput(this);
+	//hence come this as well:
+	if(GetPawn()) GetPawn()->DisableInput(this);
+
+	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("ADSPlayerController::BeginPlay() trigger"));
+}
+
 void ADSPlayerController::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
@@ -26,9 +39,9 @@ void ADSPlayerController::PlayerTick(float DeltaTime)
 	}
 }
 
-//so that you have RTT as soon as possible (avoiding "early artifact")
+/*so that you have RTT as soon as possible (avoiding "early artifact")
 //[GPT] ReceivedPlayer() Called once when the server acknowledges this PlayerController belongs to a client.
-//I double check it! in Shooter course we also use this one, NOT "OnPosseses" (that happen after this ReceivedPlayer, that is only when a char is spawned and this PC possesses it - way after ReceivePlayer <=> receive PlayerController)
+//I double check it! in Shooter course we also use this one, NOT "OnPosseses" (that happen after this ReceivedPlayer, that is only when a char is spawned and this PC possesses it - way after ReceivePlayer <=> receive PlayerController)*/
 void ADSPlayerController::ReceivedPlayer()
 {
 	Super::ReceivedPlayer();
@@ -41,6 +54,41 @@ void ADSPlayerController::ReceivedPlayer()
 	{
 		Server_RequestServerTime(GetWorld()->GetTimeSeconds());	
 	}
+}
+
+void ADSPlayerController::PostSeamlessTravel()
+{
+	Super::PostSeamlessTravel();
+	
+	if (GetNetMode() == ENetMode::NM_Standalone) return;
+	if(IsLocalController())
+	{
+		Server_RequestServerTime(GetWorld()->GetTimeSeconds());	
+	}
+}
+
+
+
+
+//to be called from GM::SetClientInputEnabled() helper to be in turn call in ON____Finish(){..many status..}
+void ADSPlayerController::Client_SetInputEnabled_Implementation(bool InIsEnabled)
+{
+	if (InIsEnabled)
+	{
+		EnableInput(this); //funny this PC is an actor itself
+		if(GetPawn()) GetPawn()->EnableInput(this);
+	}
+	else
+	{
+		DisableInput(this);
+		if(GetPawn()) GetPawn()->DisableInput(this); //TODO: override AShooterCharacter::DisableInput to handle the ede case specific to this FPSTemplate
+	}
+}
+
+void ADSPlayerController::Client_BroadcastOnTimerStateChangedDelegate_Start_Implementation(ETimerType TimerType,
+	float RemainingTime)
+{
+	OnTimerStateChangedDelegate_Start.Broadcast(TimerType, RemainingTime - RTT/2.f);
 }
 
 //callbacks for these delegates aren't created or bound yet!

@@ -250,6 +250,15 @@ void AShooterCharacter::TurnInPlace(float DeltaTime)
 	}
 }
 
+//my custom one:
+void AShooterCharacter::DisableInput(class APlayerController* PlayerController)
+{
+	Super::DisableInput(PlayerController);
+
+	//in case the weapon currently firing and can't stop:
+	if (Combat) Combat->Initiate_FireWeapon_Pressed();
+}
+
 FName AShooterCharacter::GetWeaponAttachPoint_Implementation(const FGameplayTag& WeaponType) const
 {
 	checkf(Combat->WeaponData, TEXT("No Weapon Data Asset - Please fill out BP_ShooterCharacter"));

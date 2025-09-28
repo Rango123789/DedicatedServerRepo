@@ -1,8 +1,9 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "Game/DSGameMode.h"
+#include "Game/DSLobbyGameMode.h"
 #include "DedicatedServers/DedicatedServers.h"
+#include "Game/GameInstanceSubsystem_DS.h"
 /*NOTE: if you include a file that is directly in Source/ModuleName for a file inside private/public folder
 , you need to start from "ModuleFolderName/[ModuleName].h"
 , simply it is NOT in [Public] folder at all!*/
@@ -13,34 +14,25 @@
 #include "GameLiftServerSDKModels.h"
 #endif
 
+#include "Game/DSGameState.h"
+#include "Game/GameInstanceSubsystem_DS.h"
 #include "GenericPlatform/GenericPlatformOutputDevices.h"
+#include "InfoAndState/LobbyInfo.h"
+#include "Kismet/GameplayStatics.h"
+#include "Player/DSPlayerController.h"
+#include "Types/LobbyPlayerInfo.h"
 
 /*DEFINE_LOG_CATEGORY(GameServerLog);*/
 
 //don't know why AWS try to find the DefaultPawnClass, isn't already set in BP_GameMode?
-ADSGameMode::ADSGameMode() :
-    ProcessParams(nullptr)
+ADSLobbyGameMode::ADSLobbyGameMode() 
 {
-    /*UPDATE: this is bad practice, we directly set them in BP__GameMode, lol! Stephen verified it:
-        // Set default pawn class to our Blueprinted character
-            // the keyword **static** means that the variable PlayerPawnBPClass is only initialized once
-            //the first time the constructor ADSGameMode::ADSGameMode() is called — no matter how many times this constructor is later executed
-            //Performance Optimization: Loading a class reference from disk (especially with ConstructorHelpers) can be expensive. Making it static ensures that this work is done only once.
-            //Caching: The result of the class lookup is stored and reused on subsequent calls to the constructor, avoiding repeated class lookups.
+    bUseSeamlessTravel = true;
+    TimerWrapper_LobbyToGame.TimerType = ETimerType::LobbyCountdown;
 
-            static ConstructorHelpers::FClassFinder<APawn> PlayerPawnBPClass(TEXT("/Game/ThirdPerson/Blueprints/BP_ThirdPersonCharacter"));
-
-        //GM::DefaultPawnClass, DefaultPlayerStateClass... are members of GM
-            if (PlayerPawnBPClass.Class != NULL)
-            {
-                DefaultPawnClass = PlayerPawnBPClass.Class;
-            }
-
-            UE_LOG(GameServerLog, Log, TEXT("Initializing ADSGameMode..."));
-    */
 }
 
-void ADSGameMode::BeginPlay()
+void ADSLobbyGameMode::BeginPlay()
 {
     Super::BeginPlay();
 
@@ -52,7 +44,249 @@ void ADSGameMode::BeginPlay()
 #endif
 }
 
-void ADSGameMode::InitGameLift()
+void ADSLobbyGameMode::PreLogin(const FString& Options, const FString& Address, const FUniqueNetIdRepl& UniqueId,
+                                FString& ErrorMessage)
+{
+    Super::PreLogin(Options, Address, UniqueId, ErrorMessage);
+
+    FString PlayerSessionId = UGameplayStatics::ParseOption(Options, TEXT("PlayerSessionId"));
+    FString Username = UGameplayStatics::ParseOption(Options, TEXT("Username"));
+
+    //PlayerSessionId surely needed, Username not sure, ErrorMessage is needed in fact can't accept the player session (so that we reject the player even join the level by setting its value to any "non-empty string")
+    TryAcceptPlayterSession(PlayerSessionId, Username, ErrorMessage );
+
+    UE_LOG(LogTemp, Warning, TEXT("ADSLobbyGameMode::PreLogin for Username: %s, PlayerSessionId: %s"), *Username, *PlayerSessionId);
+}
+
+/*if you're to set PC::members in GM::InitNewPlayer() that trigger in the server only (unless you mark your custom members Replicated)
+, then only PC_server version get it assigned (and that's all what we need as long as it persist upto GM::Logout)! yeah*/
+FString ADSLobbyGameMode::InitNewPlayer(APlayerController* NewPlayerController, const FUniqueNetIdRepl& UniqueId,
+    const FString& Options, const FString& Portal)
+{
+    FString ParentReturn = Super::InitNewPlayer(NewPlayerController, UniqueId, Options, Portal);
+//extra code:
+    if (ADSPlayerController* DSPlayerController = Cast<ADSPlayerController>(NewPlayerController))
+    {
+        DSPlayerController->Username = UGameplayStatics::ParseOption(Options, TEXT("Username"));
+        DSPlayerController->PlayerSessionId = UGameplayStatics::ParseOption(Options, TEXT("PlayerSessionId"));
+        UE_LOG(LogTemp, Warning, TEXT("ADSLobbyGameMode::InitNewPlayer for Username: %s, PlayerSessionId: %s"), *DSPlayerController->Username , *DSPlayerController->PlayerSessionId );
+    }
+
+    //this is the case when a LATE player join at the time that the server travel to the new map (but I don't think any chance for this can be possible lol)
+    if (LobbyStatus != ELobbyStatus::SeamlessTravelToGameMap)
+    {
+        AddPlayerInfoToLobbyInfo(NewPlayerController);    
+    }
+    
+    return ParentReturn;
+}
+
+//handle edge1: Players from Dashboard/Menu -> Lobby (current hard-travel)
+void ADSLobbyGameMode::PostLogin(APlayerController* NewPlayer)
+{
+    Super::PostLogin(NewPlayer);
+
+    if (LobbyStatus == ELobbyStatus::WaitingForPlayers && GetNumPlayers() >= MinPlayers)
+    {
+        LobbyStatus = ELobbyStatus::CountdownToSeamlessTravel;
+        StartCountdownTimer(TimerWrapper_LobbyToGame); //->override OnTimerChangedDelegate_Finish
+    }
+
+    UE_LOG(LogTemp, Warning, TEXT("ADSLobbyGameMode::PostLogin for %s"),  *NewPlayer->GetName());
+}
+
+//handle edge2: Lobby <- Game map (current seamless-travel)
+void ADSLobbyGameMode::InitSeamlessTravelPlayer(AController* NewController)
+{
+    Super::InitSeamlessTravelPlayer(NewController);
+
+    if (bOverrideInitSeamlessTravelPlayer == false) return;
+    if (LobbyStatus == ELobbyStatus::WaitingForPlayers && GetNumPlayers() >= MinPlayers)
+    {
+        LobbyStatus = ELobbyStatus::CountdownToSeamlessTravel;
+        StartCountdownTimer(TimerWrapper_LobbyToGame); //->override OnTimerChangedDelegate_Finish
+    }
+
+    //this is the case when a LATE player join at the time that the server travel to the new map (but I don't think any chance for this can be possible lol)
+    if (LobbyStatus != ELobbyStatus::SeamlessTravelToGameMap)
+    {
+        AddPlayerInfoToLobbyInfo(NewController);
+    }
+    UE_LOG(LogTemp, Warning, TEXT("ADSLobbyGameMode::PostLogin for %s"),  *NewController->GetName());
+}
+
+/*we only have "GM::Logout" (GM::PostLogout didn't exist)
+, hence at this point GetNumPlayers() isn't subtracted the leaving player yet!
+, on the contrary, PostLogin already include (because "post" ) the current player*/
+void ADSLobbyGameMode::Logout(AController* Exiting)
+{
+    Super::Logout(Exiting);
+
+    //no point doing this when you're still in WaitingForPlayers - absolutely possible when you increase MinPlayers value!
+    if ( (GetNumPlayers() - 1) < MinPlayers && LobbyStatus == ELobbyStatus::CountdownToSeamlessTravel)
+    {
+        LobbyStatus = ELobbyStatus::WaitingForPlayers; //set it back to this, so PostLogin+ will be able to work again when new players join to compensate
+        StopCountdownTimer(TimerWrapper_LobbyToGame); //MANUALLY call this will also trigger "OnTimerChangedDelegate_Finish" hence checking LobbyStatus is now no longer optional below lol! yeah!
+    }
+
+    //this is the case when a player press leave just around the time the server is to travel to Game map, this is hardly possible too I guess. but it is worth it because "the underlying action cost replication"
+    if (LobbyStatus != ELobbyStatus::SeamlessTravelToGameMap)
+    {
+        RemovePlayerInfoFromLobbyInfo(Exiting);
+    }
+}
+
+void ADSLobbyGameMode::AddPlayerInfoToLobbyInfo(AController* InPC)
+{
+    ADSPlayerController* DSPlayerController = Cast<ADSPlayerController>(InPC);
+    ADSGameState* DSGameState = GetGameState<ADSGameState>();
+
+    if (IsValid(DSPlayerController) == false || IsValid(DSGameState) == false) return;
+    if (IsValid(DSGameState->LobbyInfo) == false) return;
+    
+    //warning in UW_ we do check if the UW_PlayerLabel element already exist before we add it, but in LobbyInfo::__Array::AddPlayerInfo we did NOT, hence I change Array.Add to .AddUnique from there already. yeah!
+    FLobbyPlayerInfo NewLobbyPlayerInfo(DSPlayerController->Username);
+    DSGameState->LobbyInfo->AddPlayerInfo(NewLobbyPlayerInfo);
+}
+
+void ADSLobbyGameMode::RemovePlayerInfoFromLobbyInfo(AController* InPC)
+{
+    ADSPlayerController* DSPlayerController = Cast<ADSPlayerController>(InPC);
+    ADSGameState* DSGameState = GetGameState<ADSGameState>();
+
+    if (IsValid(DSPlayerController) == false || IsValid(DSGameState) == false) return;
+    if (IsValid(DSGameState->LobbyInfo) == false) return;
+    
+    //warning in UW_ we do check if the UW_PlayerLabel element already exist before we add it, but in LobbyInfo::__Array::AddPlayerInfo we did NOT, hence I change Array.Add to .AddUnique from there already. yeah!
+    DSGameState->LobbyInfo->RemovePlayerInfo(DSPlayerController->Username);
+}
+
+void ADSLobbyGameMode::OnCountDownTimerFinished(const ETimerType& InTimerType)
+{
+    Super::OnCountDownTimerFinished(InTimerType); //empty
+
+    //Again like MatchGameMode::___, either of them is redudant (not to mention we will only have a single timer in lobby game mode, then none of them is needed so far lol, any for tripple safety, we always add them both. the TimerType to make sure if there is many timer wrappers run at the same time, only the matching action is done)
+    if (LobbyStatus == ELobbyStatus::CountdownToSeamlessTravel && TimerWrapper_LobbyToGame.TimerType == InTimerType)
+    {
+        //STEPHEN comment out in parent's StartCountdownTimer and move it here, but i think it is still in the chain lol
+        StopCountdownTimer(TimerWrapper_LobbyToGame);
+
+        LobbyStatus = ELobbyStatus::SeamlessTravelToGameMap;
+        TrySeamlessTravelToNewLevel(GameMap);
+    }  
+}
+
+void ADSLobbyGameMode::TryAcceptPlayterSession(const FString& PlayerSessionId, const FString& Username,
+    FString& OutErrorMessage)
+{
+//1. if either PlayerSessionId or Username is empty, then return with Error:
+    if (PlayerSessionId.IsEmpty() || Username.IsEmpty())
+    {
+        GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("Trying to accept PlayerSession with an empty PlayerSessionId or Username"));
+        OutErrorMessage = "Trying to accept PlayerSession with an empty PlayerSessionId or Username";
+        return;
+    }
+#if WITH_GAMELIFT //everytime you try to use GameLift functionalities, try the check if it is ACTIVE first (per for better performance in relation with other GameLift code)
+    
+/*2. this DEMO the idea,  remember prefix those aws type or helper with aws::.....::
+    
+     aws::...::T[/DescribePlayerSessionRequest] DescribeRequest;
+     DescribeRequest.SetPlayerSessionId(PlayerSessionId);
+     aws::...::T1[/Whatever]   RequestOutcome = aws::...::DescribePlayerSessions(DescribeRequest)
+
+     if(RequestOutcome.IsSuccess() == false) return with Error;
+
+     aws::...::T2[/Whatever]  RequestResult = RequestOutcome.GetResult()
+
+        //but strange I only pass in "one player id" how could it return more than one result? well it is in case you do DescribeRequest.SetOtherQuery(__) instead of PlayerSessionId.
+        //but since we directly pass in PlayerSessionId, we expect one result maximum, so need only check the pointer null or not, however better off follow stephen and loop through it lol
+        //in fact it is array-representative pointer lol:
+     aws::...::TArray<PlayerSession*> PlayerSessions = RequestResult.GetPlayerSessions(); 
+
+     if(PlayerSessions == nullptr || PlayerSessions.num() == 0)  return with Error;
+
+     //good news: it just so happen that PlayerSession type has all members like FDSPlayerSession we create (well it make sense though, if they're not the same or similar, you expect it is different lol? )
+     for (aws::...::PlayerSession PlayerSession : PlayerSessions )
+     {
+           //note that .Username is never member of PlayerSession, Username is concept from Cognito lol.
+           //the newly-created but not accepted yet playersession should be in ::RESERVED status! (otherwise it is TIMEOUT status, it can't be in ACTIVE status unless you already "accept" it)
+           //so the idea is that if we find the playersession with that id but is not in RESERVED status then return with Error
+        if(PlayerSession.GetPlayerId() == Username && PlayerSession.GetStatus() ==  ::RESERVED}
+        {
+          aws::...::T3[/Whatever] AcceptOutCome  = aws::...::AcceptPlayerSession(PlayerSessionId);
+
+            
+          if(AcceptOutCome.IsSuccess() == true) {
+             //only any of them pass upto this inner if, we return "WITHOUT error"
+             return; 
+          } 
+          else {return with Error;}
+        }
+     }
+
+     //if you loop through them all and could find such PlayerSession with that PlayerId, then also return with Error, to be exact now it is the very end hence you need only set "MessageError = ...."
+     return with Error;
+*/
+    Aws::GameLift::Server::Model::DescribePlayerSessionsRequest DescribeRequest;
+        //'*FString' alone NOT work , it return CString-LIKE (but not exactly)
+        DescribeRequest.SetPlayerSessionId(TCHAR_TO_ANSI(*PlayerSessionId));
+    
+    Aws::GameLift::DescribePlayerSessionsOutcome DescribePlayerSessionsOutcome = Aws::GameLift::Server::DescribePlayerSessions(DescribeRequest);
+
+    if (DescribePlayerSessionsOutcome.IsSuccess() == false)
+    {
+        
+        GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("there is no such PlayerSession"));
+        OutErrorMessage = "there is no such PlayerSession" ;
+        return;
+    }
+
+    Aws::GameLift::Server::Model::DescribePlayerSessionsResult DescribePlayerSessionsResult = DescribePlayerSessionsOutcome.GetResult();
+
+    int32 NumOfFoundPlayerSessions;
+    const Aws::GameLift::Server::Model::PlayerSession* PlayerSessions = DescribePlayerSessionsResult.GetPlayerSessions(NumOfFoundPlayerSessions);
+
+    // I don't think this the case, because .IsSuccess() is already true down here
+    if (NumOfFoundPlayerSessions == 0 || PlayerSessions == nullptr) 
+    {
+        GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("there is no such PlayerSession"));
+        OutErrorMessage = "there is no such PlayerSession" ;
+        return;
+    }
+
+    for(int32 i = 0; i < NumOfFoundPlayerSessions; i++)
+    {
+        Aws::GameLift::Server::Model::PlayerSession PlayerSession = PlayerSessions[i];
+        
+        //we just search for PlayerSessions with 'PlayerSessionId', hence it only make sense if we now check on PlayerId instead
+        if (PlayerSession.GetPlayerId() == Username) 
+        {
+            //only call AcceptPlayerSession when we know it is in RESERVED state
+            if (PlayerSessions->GetStatus() == Aws::GameLift::Server::Model::PlayerSessionStatus::RESERVED)
+            {
+                Aws::GameLift::GenericOutcome AcceptPlayerSessionOutcome = Aws::GameLift::Server::AcceptPlayerSession(TCHAR_TO_ANSI(*PlayerSessionId));
+                if (AcceptPlayerSessionOutcome.IsSuccess())
+                {
+                    GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("AcceptPlayerSession SUCCEEDED!"));
+                    return; //return without Error
+                }
+                {
+                    GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("AcceptPlayerSession failed!"));
+                    OutErrorMessage = "AcceptPlayerSession failed!";
+                    return;
+                }
+            }
+        }
+    }
+
+    //if loop through it, and you find back no such PlayerSession with that PlayerId = Username (as it should because we deliberately set "PlayerId" field to Username when we send the HTTPRequest), then let issue an error too:
+    GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("No PlayerSession with the specified PlayerId or the PlayerSession is already TIMEOUT"));
+    OutErrorMessage = "No PlayerSession with the specified PlayerId or the PlayerSession is already TIMEOUT";
+    
+#endif WITH_GAMELIFT
+}
+
+void ADSLobbyGameMode::InitGameLift()
 {
 #if WITH_GAMELIFT
   
@@ -137,6 +371,18 @@ void ADSGameMode::InitGameLift()
         return;
     }
 
+/********UPDATE*************
+-You still need to call Module->InitSDK again because Anywhere fleet case need to do it again for new FServerParameters that is subject to change
+-  when we go back and forth these code are called again (so does the code above but...) , so we don't let it to call ProcessReady() again which is not needed or not good (ProcessParameters::delegates keep geting more of the same callbacks bound)
+- hence we make sure it only happen ONCE even we travel back and forth from the lobby
+*/
+/*Step4_alpha:*/
+    if(GetGameInstance()->GetSubsystem<UGameInstanceSubsystem_DS>()->bAlreadyInit) return;
+    else
+    {
+        GetGameInstance()->GetSubsystem<UGameInstanceSubsystem_DS>()->bAlreadyInit = true;
+    }
+    
 /*Step4A: Bind your custom callbacks with custom reponses/behavivors with FProcessParameters::delegates (it is currently as member) when "the session is created/started, updated, terminated.*/
 
     ProcessParams = MakeShared<FProcessParameters>();
@@ -161,12 +407,15 @@ void ADSGameMode::InitGameLift()
         });
     
 /*Step4B: Ready ProcessParameters::port, LogsParameters...*/
+    //NEXT time, need only do this:
+        //    ProcessParams->port = FURL::UrlConfig.DefaultPort;
+        //    FParse::Value(FCommandLine::Get() , TEXT("port="), ProcessParams->port);
+    
     ProcessParams->port = FURL::UrlConfig.DefaultPort;
     
     TArray<FString> CommandLineTokens; //we didn't
     TArray<FString> CommandLineSwitches;
     FCommandLine::Parse(FCommandLine::Get(), CommandLineTokens, CommandLineSwitches);
-
     for (FString SwitchStr : CommandLineSwitches)
     {
         FString Key;
@@ -175,7 +424,7 @@ void ADSGameMode::InitGameLift()
         if (SwitchStr.Split("=", &Key, &Value))
         {
             //== is always strictly case-senstive, so we use FString::Equals for some leeway!
-            if (Key.Equals("port" , ESearchCase::IgnoreCase))
+            if (Key.Equals("port" , ESearchCase::IgnoreCase) && Value.IsNumeric()) //better add 'Value.IsNumeric()'
             {
                 ProcessParams->port = FCString::Atoi(*Value);
                 break;
@@ -207,6 +456,9 @@ void ADSGameMode::InitGameLift()
     }
 
     UE_LOG(GameServerLog, Log, TEXT("InitGameLift completed!"));
+
+    //this is not needed I believe, new code don't need you to do it any more:
+    GetGameInstance()->GetSubsystem<UGameInstanceSubsystem_DS>()->CachedProcessParams = ProcessParams;
 #endif
 }   
 

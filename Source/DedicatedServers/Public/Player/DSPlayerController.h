@@ -18,11 +18,18 @@ class DEDICATEDSERVERS_API ADSPlayerController : public APlayerController
 	GENERATED_BODY()
 public:
 	ADSPlayerController();
+	virtual void BeginPlay() override;
+
 	virtual void Tick(float DeltaSeconds) override;
 	virtual void PlayerTick(float DeltaTime) override;
-	virtual void ReceivedPlayer() override;
 
+	//this pair is matually exclusive, i suggess you copy one code for the other (exactly like GM::PostLogin + GM::Init__Player):
+	virtual void ReceivedPlayer() override;
+	virtual void PostSeamlessTravel() override;
 	
+
+	//finally we add this lol:
+	FOnTimerStateChangedDelegate OnTimerStateChangedDelegate_Start;
 	//we broadcast this when "we just start the timer + update the timer per Interval of 1.s (Timer+loop mode)"
 	FOnTimerStateChangedDelegate OnTimerStateChangedDelegate_Update;
 	//we broadcast this when "CountdownTime [Max -> 0]" (we should help to clear TimerHandle so it stops the loop above! EITHER in the callback of this delegate or next to where you broadcast this delegate)
@@ -33,13 +40,23 @@ public:
 	FOnTimerStateChangedDelegate OnTimerStateChangedDelegate_Pause;
 	UPROPERTY(BlueprintAssignable)
 	FOnTimerStateChangedDelegate OnTimerStateChangedDelegate_Stop;
+
+	UPROPERTY(BlueprintReadOnly)
+	FString Username{};
+	UPROPERTY(BlueprintReadOnly)
+	FString PlayerSessionId{};
+
+	//helper Client_RPCs to broadcast those delegates:
+	UFUNCTION(Client, Reliable)
+	void Client_BroadcastOnTimerStateChangedDelegate_Start(ETimerType TimerType, float RemainingTime);
 	
-//helper Client_RPCs to broadcast those delegates:
 	UFUNCTION(Client, Reliable)
 	void Client_BroadcastOnTimerStateChangedDelegate_Update(ETimerType TimerType, float RemainingTime);
 	UFUNCTION(Client, Reliable)
 	void Client_BroadcastOnTimerStateChangedDelegate_Finish(ETimerType TimerType, float RemainingTime);
-	
+
+	UFUNCTION(Client, Reliable)
+	void Client_SetInputEnabled(bool InIsEnabled);
 protected:
 
 	//ClientTimeWhenRequest = assuming pass in [GetWorld()->GetDeltaSeconds] from a client machine

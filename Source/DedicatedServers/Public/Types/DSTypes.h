@@ -9,9 +9,9 @@
 , Shocking news: [PreMatch - Match - PostMatch] states ARE IN FACT within "GM::InProgress" state (hence the comment)
 , as long as we don't set "GM::bDelay=true" it go from [GM::EnteringMap->WaitingToStart->InProgress] directly with WaitingToStart=0 time
 , meaning PreMatch status is NOT exactly GM::WaitingToStart AT ALL
-+PreMatch doesn't exacr match WaitingtoStatt
++PreMatch doesn't exact match WaitingtoStart
 */
-UENUM(BlueprintType)
+UENUM(BlueprintType) //to be added to MapGameMode
 enum class EMatchStatus : uint8 //you can call them EGameStatus of you want
 {
 	WaitingForPlayers, //we don't use "none" for this one, or replace "none" for "waitingForPlayers" if you want
@@ -21,13 +21,19 @@ enum class EMatchStatus : uint8 //you can call them EGameStatus of you want
 	SeamlessTravelBackToLobby //this may match GM::LeavingMap, but let's consider it still in GM::InProgress and just before GM::LeavingMap
 };
 
+UENUM(BlueprintType) //to be added to LobbyGameMode
+enum class ELobbyStatus : uint8
+{
+	WaitingForPlayers,
+	CountdownToSeamlessTravel,
+	SeamlessTravelToGameMap
+};
+
 /** DO NOT confuse:
 - TimerState[/TimerStatus] here is to serve "TimerHandle" at its first purpose: whether it is started yet? it is running is being paused for reason?
 , hence its value set isn't exactly matching MatchState
 - TimerType is is to server MatchState::{WatingToStart, Pre-Match, Match, Post-Match} in Game map + in Lobby map
-, hence its value set is matching MatchState + extra
- */
-
+, hence its value set is matching MatchState + extra*/
 //you in fact don't need to add UMETA if you want the name to be shown in BP is exactly the same the C++ name here lol:
 UENUM(BlueprintType)
 enum class ETimerType : uint8
@@ -40,6 +46,7 @@ enum class ETimerType : uint8
 };
 
 //it looks like we don't have "Continue", if we "Paused" and want to continue, we set it back to "Started" :)
+//we didn't even need this so far lol - I think it will only be useful if you allow "pause" + "resume" features.
 UENUM(BlueprintType)
 enum class ETimerState : uint8
 {

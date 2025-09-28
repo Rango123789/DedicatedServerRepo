@@ -24,6 +24,8 @@ protected:
 	virtual void NativeOnInitialized() override;
 
 	//no need to add spaces, BP always now to space them up there lol.
+	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "OnTimerStart"))
+	void K2_OnTimerStart(ETimerType Timer, float RemainingTime);
 	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "OnTimerUpdate"))
 	void K2_OnTimerUpdate(ETimerType Timer, float RemainingTime);
 	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "OnTimerFinish"))
@@ -31,23 +33,29 @@ protected:
 
 	//stephen make these callback virtual, so that it can be override in C++ child or WBP_child if needed
 	UFUNCTION()
+	virtual void OnTimerStart(ETimerType InTimerType, float RemainingTime);
+	UFUNCTION()
 	virtual void OnTimerUpdate(ETimerType InTimerType, float RemainingTime);
 	UFUNCTION()
 	virtual void OnTimerFinish(ETimerType InTimerType, float RemainingTime);
 
 //for code mechanics
+	UPROPERTY(BlueprintReadOnly)
 	bool bIsActive = false;
+	UPROPERTY(BlueprintReadOnly)
 	float InternalRemainingTime = 0.f;
 
 //to be set/custumized from BP for different WBP_TimerChild
 	//we will have many different WBP_TimerChild_i, and we also broadcast PC::delegate1,2(TimerType) differently on different context, hence only the intended WBP_TimerChild_i should react to it!
 	UPROPERTY(EditAnywhere)
 	ETimerType TimerType;
+
+	//of course we want it to hide when Inactive, so set this to "true", set to false only for when testing lol
 	UPROPERTY(EditAnywhere)
-	bool bHiddenWhenInActive = false;
+	bool bHiddenWhenInActive = true;
 
 	UPROPERTY(EditAnywhere)
-	bool bShowMilliseconds = true;
+	bool bShowMilliseconds = false;
 	UPROPERTY(EditAnywhere)
 	bool bAllowNegativeTime = true;
 //side helpers:

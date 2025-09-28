@@ -12,7 +12,7 @@ class UInputMappingContext;
 class UInputAction;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnPlayerStateReplicated);
-
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnQuitButtonShowOrCloseDelegate, bool, bShoulShowQuitButton);
 /**
  * 
  */
@@ -28,6 +28,9 @@ public:
 
 	UPROPERTY(BlueprintAssignable)
 	FOnPlayerStateReplicated OnPlayerStateReplicated;
+
+	UPROPERTY(BlueprintAssignable)
+	FOnQuitButtonShowOrCloseDelegate OnQuitButtonShowOrCloseDelegate;
 protected:
 	virtual void BeginPlay() override;
 	virtual void SetupInputComponent() override;
@@ -47,13 +50,18 @@ private:
 	UPROPERTY(EditAnywhere, Category="Input")
 	TObjectPtr<UInputAction> JumpAction;	
 
+	//custom:
+	UPROPERTY(EditAnywhere, Category="Input")
+	TObjectPtr<UInputAction> QuitAction;
+
 	
 	void Input_Move(const FInputActionValue& InputActionValue);
 	void Input_Look(const FInputActionValue& InputActionValue);
 	void Input_Crouch();
 	void Input_Jump();
-	
-	
+
+	bool bQuitButtonShown = false;
+	void Input_Quit();
 
 	
 };

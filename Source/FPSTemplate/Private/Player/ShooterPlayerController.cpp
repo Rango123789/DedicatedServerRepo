@@ -46,7 +46,11 @@ void AShooterPlayerController::SetupInputComponent()
 	ShooterInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &AShooterPlayerController::Input_Look);
 	ShooterInputComponent->BindAction(CrouchAction, ETriggerEvent::Started, this, &AShooterPlayerController::Input_Crouch);
 	ShooterInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this, &AShooterPlayerController::Input_Jump);
+
+	//custom: "Started" to make sure it only trigger "ONCE" 100%, but anyway you can choose trigger and configure it in IA_Asset to make sure it as well :D :D
 	
+	ShooterInputComponent->BindAction(QuitAction, ETriggerEvent::Started, this, &AShooterPlayerController::Input_Quit);
+	//ShooterInputComponent->BindAction(QuitAction, ETriggerEvent::Triggered, this, &AShooterPlayerController::Input_Quit);
 }
 
 void AShooterPlayerController::Input_Move(const FInputActionValue& InputActionValue)
@@ -85,6 +89,32 @@ void AShooterPlayerController::Input_Jump()
 	if (!bPawnAlive) return;
 	if (GetPawn() == nullptr || !GetPawn()->Implements<UPlayerInterface>()) return;
 	IPlayerInterface::Execute_Initiate_Jump(GetPawn());
+}
+
+void AShooterPlayerController::Input_Quit()
+{
+	bQuitButtonShown = !bQuitButtonShown;
+	if (bQuitButtonShown)
+	{
+		//setup input mode to UI Only+
+		//if you do this you can no longer press "Q" button again, it don't register physical inputs in UI Only!
+			//SetInputMode(FInputModeUIOnly());
+		//this is the correct one
+		SetInputMode(FInputModeGameAndUI());
+		SetShowMouseCursor(true);
+		
+		//broadcast the delegate and so any WBP_X can act accordingly
+		OnQuitButtonShowOrCloseDelegate.Broadcast(true);
+	}
+	else
+	{
+		//setup input mode to Game Only+
+		SetInputMode(FInputModeGameOnly());
+		SetShowMouseCursor(false);
+		
+		//broadcast the delegate and so any WBP_X can act accordingly:
+		OnQuitButtonShowOrCloseDelegate.Broadcast(false);
+	}
 }
 
 
